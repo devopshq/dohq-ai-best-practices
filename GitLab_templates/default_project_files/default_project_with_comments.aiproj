@@ -1,0 +1,151 @@
+{
+ // Main Settings
+ "ProjectName": "Project", // Имя проекта
+ "ProgrammingLanguage": "Csharp", // Язык приложения.
+// Доступны: Java, Php, Csharp, Vb, ObjectiveC, CPlusPlus, Sql, Swift, Python, JavaScript, Kotlin, Go
+ "ScanAppType": "CSharp , Configuration, Fingerprint, PmTaint ", // Модули поиска уязвимостей.
+// Доступны:  Php, Java, CSharp, JavaScript, Configuration, Fingerprint (включает в себя DependencyCheck), PmTaint, BlackBox
+
+ "ThreadCount": 1, // Количество потоков
+ "Site": "http://localhost", // Адрес сайта
+ "IsDownloadDependencies": true, // Загрузить зависимости
+
+ "IsUsePublicAnalysisMethod": false, // Искать от доступных public и protected методов
+ "IsUseEntryAnalysisPoint": true, // Искать от точек входа
+
+ "ScanUnitTimeout": 600, // Максимальное время сканирования файла в seconds
+ "PreprocessingTimeout": 60, // Таймаут препроцессинга в  minutes
+ "CustomParameters": null, // Дополнительные параметры запуска
+
+ "SkipFileFormats": ["*.gif"], // Исключенные форматы файлов
+ "SkipFilesFolders": ["\\.git\\", "\\.gitignore", "\\.gitmodules", "\\.gitattributes", "\\$tf\\", "\\$BuildProcessTemplate\\", "\\.tfignore"], // Фильтр дерева
+
+ // Vulnerabilities to find
+ "DisabledPatterns": ["145", "146", "148", "149"], // Отключенные шаблоны
+ "DisabledTypes": [], // Отключенные проверки исходного кода
+
+ "ConsiderPreviousScan": true, // Учитывать предыдущее сканирование
+ "HideSuspectedVulnerabilities": true, //Скрывать подозрения на уязвимость
+ "UseIssueTrackerIntegration": true, // Использовать интеграцию с системами обработки заявок
+
+ // Java Parameters
+ "IsUnpackUserPackages": false, // Распаковывать пользовательские пакеты
+ "JavaParameters": null, // Параметры запуска JDK
+ "JavaVersion": 0, // Версия jdk, 0 соответствует версии 1.8, 1 соответствует версии 1.10
+
+ //JavaScript Parameters
+ "JavaScriptProjectFile": "path_to_file", // Путь к файлу скрипта
+ "JavaScriptProjectFolder": "path_to_dir", // Путь к корневой папке проекта javascript
+
+ //PMTaint Parameters
+ "UseTaintAnalysis": false, // Использовать ли движок AI.Taint для анализа
+ "UsePmAnalysis": true, // Использовать ли движок PT.PM для анализа
+ "DisableInterpretCores": false, // Игнорировать ли ядра интерпретации (C#, Java, PHP) при анализе
+
+ // YARA Parameters
+ "UseDefaultFingerprints": true, // Использовать предустановленные фингерпринты
+ "UseCustomYaraRules": false, // Использовать пользовательские правила YARA (сами правила задаются только через базу в UI)
+
+ // BlackBox Parameters
+ "BlackBoxScanLevel": "None", // Режим поиска. Доступны: Fast, Normal, Full
+ "CustomHeaders": [["", ""]], // Дополнительные заголовки
+ "Authentication": {
+  "auth_item": {
+   "domain": null,   // Адрес проверки
+   "credentials": {
+    "cookie": null,    // Значение куки
+    "type": 2,    // Тип аутентификации. Доступно: 0 = Form, 1 = HTTP, 2 = None, 3 = Cookie
+    "login": {
+     "name": null,     // поле "Ключ логина"
+     "value": null,     // поле значения логина
+     "regexp": null,
+     "is_regexp": false
+    },
+    "password": {
+     "name": null,     // поле "Ключ пароля"
+     "value": null,     // поле значения пароля
+     "regexp": null,     // ex: "p[aA]ss(word)?"
+     "is_regexp": false
+    }
+   },
+   "test_url": null,   // поле "Адрес проверки"
+   "form_url": null,   // поле "Адрес формы"
+   "form_xpath": ".//form",   // поле "XPath формы"
+   "regexp_of_success": null   // поле "Шаблон проверки"
+  }
+ },
+ "ProxySettings": {
+  "IsEnabled": false,  // Активировать настройки прокси
+  "Host": null,  // "ip address"
+  "Port": null,  // Порт
+  "Type": 0,  // Тип прокси. Доступно: 0 or HTTP, 1 or HTTPNOCONNECT, 2 or SOCKS4, 3 or SOCKS5
+  "Username": null,  // Логин
+  "Password": null  // Пароль
+ },
+
+ // Autocheck Parameters
+ "RunAutocheckAfterScan": false, // Запустить автопроверку после сканирования
+ "AutocheckSite": "http://localhost", // Адрес для автопроверки, если не указан берется значение параметра "Site"
+ "AutocheckCustomHeaders": [["", ""]], // Дополнительные заголовки
+ "AutocheckAuthentication": {
+  "auth_item": {
+   "domain": null,   // Адрес проверки
+   "credentials": {
+    "cookie": null,    // Значение куки
+    "cookies": null,
+    "type": 2,    // Тип аутентификации. Доступно: 0 = Form, 1 = HTTP, 2 = None, 3 = Cookie
+    "login": {
+     "name": null,     // поле "Ключ логина"
+     "value": null,     // поле значения логина
+     "regexp": null,
+     "is_regexp": false
+    },
+    "password": {
+     "name": null,     // поле "Ключ пароля"
+     "value": null,     // поле значения пароля
+     "regexp": null,     // пример: "p[aA]ss(word)?"
+     "is_regexp": false
+    }
+   },
+   "test_url": null,   // поле "Адрес проверки"
+   "form_url": null,   // поле "Адрес формы"
+   "form_xpath": ".//form",   // поле "XPath формы"
+   "regexp_of_success": null   // поле "Шаблон проверки"
+  }
+ },
+ "AutocheckProxySettings": {
+  "IsEnabled": false,  // Активировать настройки прокси
+  "Host": null,  // IP-адрес
+  "Port": null,  // Порт
+  "Type": 0,  // Тип прокси. Доступно: 0 or HTTP, 1 or HTTPNOCONNECT, 2 or SOCKS4, 3 or SOCKS5
+  "Username": null,  // Логин
+  "Password": null  // Пароль
+ },
+
+ "SendEmailWithReportsAfterScan": true, // Отправлять отчет на почту по завершении сканирования
+ "CompressReport": false, // Сжимать отчет перед отправкой
+
+ // Email Parameters
+ "EmailSettings": {
+  "SmtpServerAddress": "mail.ptsecurity.ru",  // Адрес SMTP сервера
+  "UserName": "testagent_wes@ptsecurity.com",  // Имя пользователя
+  "Password": "P@ssw0rd",  // Пароль
+  "EmailRecipients": "User@ptsecurity.ru",  // Адрес получателя отчета
+  "EnableSsl": true,  // Включить SSL
+  "Subject": "Email Title",  // Тема
+  "ConsiderCertificateError": true,  // Учитывать ошибки сертификата
+  "SenderEmail": "testagent_wes@ptsecurity.com"  // Отправитель
+ },
+
+  // Report Settings
+ "ReportParameters": {
+  "SaveAsPath": null,  // Папка, в которую сохраняются отчеты
+  "UseFilters": false,  // Использовать фильтры
+  "CreatePdfPrintVersion": false,  // Создавать версию для печати
+  "IncludeDiscardedVulnerabilities": false,  // Включить опровергнутые уязвимости в отчет (по умолчанию не добавлять)
+  "IncludeSuppressedVulnerabilities": false,  // Добавить исключенные уязвимости в отчет (по умолчанию не добавлять)
+  "IncludeSuspectedVulnerabilities": true,  // Включить подозрения на уязвимость в отчет (по умолчанию добавлять)
+  "IncludeGlossary": false,  // Добавить глоссарий
+  "IncludeDFD": false  // Добавить диаграмму потока данных
+ }
+}

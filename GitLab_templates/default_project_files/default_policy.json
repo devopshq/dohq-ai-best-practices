@@ -1,0 +1,27 @@
+// Default policy template for AIE 3.5.0
+ [
+    {
+        "CountToActualize": 1,
+        "Scopes": [
+            {
+                "Rules": [
+                    {
+                        "Field": "Level", // field name
+                        "Value": "High",  // field value, case insensitive
+                        "IsRegex": false  // whether to use regular expressions
+                    },
+                    {
+                        "Field": "IsSuspected",
+                        "Value": "false",
+                        "IsRegex": false
+                    },
+                    {
+                        "Field": "ApprovalState",
+                        "Value": "[^2]",
+                        "IsRegex": true
+                    }
+                ]
+            }
+        ]
+    }
+]

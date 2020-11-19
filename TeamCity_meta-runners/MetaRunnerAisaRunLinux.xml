@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<meta-runner name="Meta-Runner: Aisa scan (Linux)">
+    <description>Meta-runner for run Application Inspector Shell Agent in Linux Docker.</description>
+    <settings>
+        <parameters>
+            <param name="devops_aisa_arguments" value="%aisa_docker_args%"
+                   spec="text description='Please specify Arguments for Application Inspector Shell Agent' display='normal' label='AISA Args:*' validationMode='not_empty'"/>
+            <param name="devops_aisa_docker_image_name" value="%aisa_docker_image_name%"
+                   spec="text description='Please specify docker image name*' display='normal' label='Aisa docker name:*' validationMode='not_empty'"/>
+            <param name="devops_aisa_docker_registry" value="%aisa_docker_registry%"
+                   spec="text description='Please specify Aisa docker registry*' display='normal' label='Docker Registry:*' validationMode='not_empty'"/>
+            <param name="devops_aisa_docker_user" value="%aisa_docker_login%"
+                   spec="text description='Please specify login for docker registry' display='normal' label='Docker login:*' validationMode='not_empty'"/>
+            <param name="devops_aisa_docker_passwd" value="%aisa_docker_password%"
+                   spec="text description='Please specify password for your docker registry account' display='normal' label='Docker password:*' validationMode='not_empty'"/>
+        </parameters>
+        <build-runners>
+            <runner name="Application Inspector Shell Agent" type="python">
+                <parameters>
+                    <param name="bitness" value="*"/>
+                    <param name="python-exe" value="%Python.3%"/>
+                    <param name="python-kind" value="C"/>
+                    <param name="python-script-code"><![CDATA[#
+import datetime
+import logging
+import subprocess
+import sys
+
+import docker  # https://docker-py.readthedocs.io/en/stable/
+
+
+def exit_with_error(exit_code, msg):
+    if exit_code == 0:
+        sys.stdout.write('\n{}\n'.format(msg))
+        sys.stdout.flush()
+        sys.exit(exit_code)
+    else:
+        sys.stderr.write('\n{}\n'.format(msg))
+        sys.stderr.flush()
+        sys.exit(exit_code)
+
+
+def teamcity_add_custom_status_and_message(build_status="SUCCESS", additional_message=None):
+    """
+    Adding custom message to standard build_status string in TeamCity.
+    build_status attribute is optional and may take the value SUCCESS
+    status message may take the value '{build.status.text}' + additional_message
+    """
+    build_status = _teamcity_escape(build_status)
+
+    if additional_message is None:
+        additional_message = "{build.status.text}"
+    else:
+        additional_message = _teamcity_escape(additional_message)
+
+    if build_status or additional_message:
+        print("##teamcity[build_status{}{}]".format(" status='{}'".format(build_status) if build_status else "",
+                                                    " text='{}'".format(
+                                                        additional_message) if additional_message else ""))
+
+
+def _teamcity_escape(value):
+    """
+    See more: https://confluence.jetbrains.com/display/TCD10/Build+Script+Interaction+with+TeamCity
+    :param value:
+    :return:
+    """
+    value = value.replace('|', '||')
+    value = value.replace('\n', '|n')
+    value = value.replace('\r', '|r')
+    value = value.replace('\'', '|\'')
+    value = value.replace('\"', '|\"')
+    value = value.replace(']', '|]')
+    value = value.replace('[', '|[')
+    # value = value.replace('|[m', '|[ |[mm') # какая-то странная штука
+
+    return value
+
+
+def teamcity_open_block(block_name):
+    print("##teamcity[blockOpened name='{}']".format(_teamcity_escape(str(block_name))))
+
+
+def teamcity_close_block(block_name):
+    print("##teamcity[blockClosed name='{}']".format(_teamcity_escape(str(block_name))))
+
+
+def fix_owner(dirs):
+    teamcity_open_block("Change owner in " + ",".join(dirs) + " directories")
+    for folder in dirs:
+        command = "sudo chown -R teamcity:teamcity {}".format(folder).split()
+        print("Command run: {}".format(command))
+        pipe = subprocess.Popen(command)
+        pipe.communicate()
+        if pipe.returncode:
+            print("Error while run {}".format(command))
+            exit(pipe.returncode)
+    teamcity_close_block("Change owner in " + ",".join(dirs) + " directories")
+
+
+def init_logging():
+    # Set logging level
+    logger_format_string = '%(thread)5s %(module)-20s %(levelname)-8s %(message)s'
+    logging.basicConfig(level=logging.ERROR, format=logger_format_string, stream=sys.stdout)
+    (logging.getLogger('docker.auth')).setLevel(level='ERROR')
+    (logging.getLogger('docker.api.build')).setLevel(level='ERROR')
+    (logging.getLogger('requests.packages.urllib3.connectionpool')).setLevel(level='ERROR')
+
+
+def docker_run(aisa_docker_user, aisa_docker_passwd, aisa_docker_registry, docker_image_name, arguments,
+               tc_checkout_dir):
+    """
+    :param arguments: Arguments for run Aisa
+    :param aisa_docker_registry: Registry name like "docker.artifactory.com"
+    :param docker_image_name: Name of Docker image
+    :param aisa_docker_user: Login for Docker Registry
+    :param aisa_docker_passwd: Password for Docker Registry
+    :param tc_checkout_dir: %teamcity.build.checkoutDir%
+    :return:
+    """
+    teamcity_open_block("Aisa running".format(**locals()))
+    teamcity_open_block("Aisa: Prepare tasks")
+
+    docker_mnt = '/home'
+
+    cmakedir = '/home/teamcity/.cmakepm'
+    yarndir = '/home/teamcity/.yarncache'
+    cont_name = int(datetime.datetime.now().strftime("%s")) * 1000
+
+    volumes = {
+        tc_checkout_dir: {
+            'bind': docker_mnt + '/src', 'mode': 'rw'},
+        cmakedir: {
+            'bind': docker_mnt + '/.cmakepm', 'mode': 'rw'},
+        yarndir: {
+            'bind': docker_mnt + '/src/.yarncache', 'mode': 'rw'},
+    }
+    dirs_for_chown = [cmakedir, yarndir, tc_checkout_dir]
+
+    container = None
+
+    try:
+
+        # Read parameters from Docker daemon
+        client = docker.from_env(version='auto')
+
+        # Login to Docker registry
+        login = client.login(username=aisa_docker_user, password=aisa_docker_passwd,
+                             registry=aisa_docker_registry,
+                             reauth=True)
+        print("login to Docker registry completed")
+        teamcity_close_block("Aisa: Prepare tasks")
+
+        teamcity_open_block("Aisa: Pull docker image")
+
+        docker_image_full_name = '{aisa_docker_registry}/{docker_image_name}'.format(**locals())
+        print("Docker image: " + docker_image_full_name)
+
+        # Use pull method to get the image from Docker registry
+        for line in client.api.pull(docker_image_full_name, stream=True, decode=True):
+            progress = line.get('progress')
+            status = line.get('status')
+            image_id = line.get('id')
+            print("Status - {}: {} | ProgressBar {} ".format(status, image_id, progress))
+
+        teamcity_close_block("Aisa: Pull docker image")
+
+        # Create container from the image
+        teamcity_open_block("Aisa: Prepare container")
+
+        # Dictionary for environment variables that pass to the container
+        env = {}
+
+        print('Run in {}'.format(docker_image_full_name))
+
+        container = client.containers.create(image=docker_image_full_name,
+                                             command='bash {docker_mnt}/src/docker_wrapper.sh'.format(**vars()),
+                                             detach=True,
+                                             environment=env,
+                                             name=cont_name,
+                                             user='root',
+                                             volumes=volumes)
+
+        # content for docker_wrapper.sh file
+
+        docker_wrapper = """
+#!/bin/bash
+touch {docker_mnt}/src/dockerTaskScript_exitcode
+chmod 777 {docker_mnt}/src/dockerTaskScript_exitcode
+cd /home/src
+rm -rf /home/src/.mr_gitlab_commit_virtualenv/
+echo --------------------------------------
+echo Aisa version: $(aisa --version)
+echo --------------------------------------
+aisa {arguments}
+echo $? > '/home/src/dockerTaskScript_exitcode'
+        """.format(**vars())
+
+        print('Docker wrapper: {}'.format(docker_wrapper))
+
+        # write content to wrapper file
+        with open(tc_checkout_dir + '/docker_wrapper.sh', 'w') as output:
+            output.write(docker_wrapper)
+
+        teamcity_close_block("Aisa: Prepare container")
+
+        teamcity_open_block("Aisa: Scan project")
+
+        container.start()
+
+        print("\nContainer {} has started, reading the log ...".format(container.name))
+
+        # Print output
+        for line in container.logs(stream=True, follow=True):
+            print(line.strip().decode("utf-8"))
+
+        with open(tc_checkout_dir + '/dockerTaskScript_exitcode', 'r') as file:
+            exit_code = file.read().strip()
+
+        if exit_code:
+            if int(exit_code) == 0:
+                msg = "Script return code {}".format(exit_code)
+                teamcity_add_custom_status_and_message(msg)
+            else:
+                msg = "Script return code {}".format(exit_code)
+                teamcity_add_custom_status_and_message(msg)
+                exit_with_error(exit_code, msg)
+
+        teamcity_close_block("Aisa: Scan project")
+
+    except docker.errors.ImageNotFound:  # as err:
+        print("\n[ERROR]: Image does not exist.")  # .format(err)
+        sys.exit(10)
+
+    except docker.errors.APIError as err:
+        print("\n[ERROR]: Some error occurred: {}".format(err))
+        sys.exit(11)
+    finally:
+
+        teamcity_open_block("Aisa: After tasks")
+        fix_owner(dirs_for_chown)
+
+        # Remove container
+        try:
+            container.remove()
+            print("\n[INFO]: Container {} was successfully removed".format(container.name))
+
+        except docker.errors.APIError as err:
+            print("\n[ERROR]: Some error occurred while you delete the container: {}".format(err))
+            sys.exit(1)
+
+        teamcity_close_block("Aisa: After tasks")
+        teamcity_close_block(
+            "Aisa running".format(**locals()))
+
+
+if __name__ == "__main__":
+    init_logging()
+    docker_run('%devops_aisa_docker_user%',
+               '%devops_aisa_docker_passwd%',
+               '%devops_aisa_docker_registry%',
+               '%devops_aisa_docker_image_name%',
+               '%devops_aisa_arguments%',
+               '%teamcity.build.checkoutDir%')
+#]]></param>
+                    <param name="python-script-mode" value="code"/>
+                    <param name="python-ver" value="*"/>
+                    <param name="teamcity.step.mode" value="default"/>
+                </parameters>
+            </runner>
+        </build-runners>
+        <requirements/>
+    </settings>
+</meta-runner>

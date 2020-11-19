@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<meta-runner name="Meta-Runner: Aisa scan (Windows)">
+  <description>Meta-runner for run Application Inspector Shell Agent in Windows Docker.</description>
+  <settings>
+    <parameters>
+      <param name="devops_aisa_arguments" value="%aisa_docker_args%" spec="text description='Please specify Arguments for Application Inspector Shell Agent' display='normal' label='AISA Args:*' validationMode='not_empty'" />
+      <param name="devops_aisa_docker_image_name" value="%aisa_docker_image_name%" spec="text description='Please specify docker image name*' display='normal' label='Aisa docker name:*' validationMode='not_empty'" />
+      <param name="devops_aisa_docker_registry" value="%aisa_docker_registry%" spec="text description='Please specify Aisa docker registry*' display='normal' label='Docker Registry:*' validationMode='not_empty'" />
+      <param name="devops_aisa_docker_user" value="%aisa_docker_login%" spec="text description='Please specify login for docker registry' display='normal' label='Docker login:*' validationMode='not_empty'" />
+      <param name="devops_aisa_docker_passwd" value="%aisa_docker_password%" spec="text description='Please specify password for your docker registry account' display='normal' label='Docker password:*' validationMode='not_empty'" />
+    </parameters>
+    <build-runners>
+      <runner name="AISA: Preparing" type="python">
+        <parameters>
+          <param name="bitness" value="*" />
+          <param name="python-exe" value="%AnyPython%" />
+          <param name="python-kind" value="*" />
+          <param name="python-script-code"><![CDATA[script = r"""
+import os
+import subprocess
+import sys
+from subprocess import call
+
+
+def exit_with_error(exit_code, msg):
+    if exit_code == 0:
+        sys.stdout.write('\n{}\n'.format(msg))
+        sys.stdout.flush()
+        sys.exit(exit_code)
+    else:
+        sys.stderr.write('\n{}\n'.format(msg))
+        sys.stderr.flush()
+        sys.exit(exit_code)
+
+
+def teamcity_add_custom_status_and_message(build_status="SUCCESS", additional_message=None):
+    '''
+    Adding custom message to standard build_status string in TeamCity.
+    build_status attribute is optional and may take the value SUCCESS
+    status message may take the value '{build.status.text}' + additional_message
+    '''
+    build_status = _teamcity_escape(build_status)
+
+    if additional_message is None:
+        additional_message = "{build.status.text}"
+    else:
+        additional_message = _teamcity_escape(additional_message)
+
+    if build_status or additional_message:
+        print("##teamcity[build_status{}{}]".format(" status='{}'".format(build_status) if build_status else "",
+                                                    " text='{}'".format(
+                                                        additional_message) if additional_message else ""))
+
+
+def _teamcity_escape(value):
+    '''
+    See more: https://confluence.jetbrains.com/display/TCD10/Build+Script+Interaction+with+TeamCity
+    :param value:
+    :return:
+    '''
+    value = value.replace('|', '||')
+    value = value.replace('\n', '|n')
+    value = value.replace('\r', '|r')
+    value = value.replace('\'', '|\'')
+    value = value.replace('\"', '|\"')
+    value = value.replace(']', '|]')
+    value = value.replace('[', '|[')
+
+    return value
+
+
+def teamcity_open_block(block_name):
+    print("##teamcity[blockOpened name='{}']".format(_teamcity_escape(str(block_name))))
+
+
+def teamcity_close_block(block_name):
+    print("##teamcity[blockClosed name='{}']".format(_teamcity_escape(str(block_name))))
+
+
+def fix_owner(dirs):
+    teamcity_open_block("Change owner in " + ",".join(dirs) + " directories")
+    for folder in dirs:
+        command = "sudo chown -R teamcity:teamcity {}".format(folder).split()
+        print("Command run: {}".format(command))
+        pipe = subprocess.Popen(command)
+        pipe.communicate()
+        if pipe.returncode:
+            print("Error while run {}".format(command))
+            exit(pipe.returncode)
+    teamcity_close_block("Change owner in " + ",".join(dirs) + " directories")
+
+
+def docker_run(aisa_docker_user, aisa_docker_passwd, aisa_docker_registry, docker_image_name, arguments, agent_work_dir,
+               tc_def_checkout_dir):
+    '''
+    :param arguments:
+    :param docker_image_name: arguments: Arguments for run Aisa
+    :param aisa_docker_registry: Registry name like "docker.artifactory.com"
+    :param aisa_docker_passwd: Password for Docker Registry
+    :param aisa_docker_user: Login for Docker Registry
+    :param tc_checkout_dir: %teamcity.build.checkoutDir%
+    :return:
+    '''
+    tc_checkout_dir = agent_work_dir + "\\" + tc_def_checkout_dir
+    build_dir = "c:\\build"
+    docker_image_full_name = '{aisa_docker_registry}/{docker_image_name}'.format(**locals())
+
+    teamcity_open_block("Run the container")
+
+    # ------ START prepare ------
+    # content for docker_wrapper.cmd file
+    docker_wrapper = r'''
+    @echo off
+    echo 1000 > {build_dir}\dockerTaskScript_exitcode
+    cd /D {build_dir}
+    echo --------------------------------------
+    echo Aisa version:
+    aisa --version
+    echo --------------------------------------
+    echo aisa {arguments}
+    aisa {arguments}
+    echo %errorlevel% > {build_dir}\dockerTaskScript_exitcode
+    '''.format(**vars())
+
+    # write content to wrapper file
+    with open('docker_wrapper.cmd', 'w') as output:
+        output.write(docker_wrapper)
+    # ------ END prepare ------
+
+    # ------ Check image exist -----
+    check_cmd = r'docker images --format "{{.Repository}}:{{.Tag}}"'.split()
+    data = None
+    try:
+        process = subprocess.Popen(check_cmd, stdout=subprocess.PIPE)
+        data = process.communicate()
+    except Exception as err:
+        msg = 'Some error occred while checking image: {}'.format(err)
+        teamcity_add_custom_status_and_message(msg, msg)
+        exit_with_error(10, msg)
+
+    image_list = data[0].decode().replace('"', '').splitlines()
+    image_with_tag = '{aisa_docker_registry}/{docker_image_name}'.format(**locals())
+    if image_with_tag not in image_list:
+        msg = 'Docker image {docker_image_name} not found. '.format(**locals())
+        teamcity_add_custom_status_and_message(msg, msg)
+        exit_with_error(10, msg)
+    # ------ END Check image exist -----
+
+    #  ------ START run docker ------
+    mount_cmd = "".join("-v {}:{} ".format(tc_checkout_dir, build_dir))
+    environment_variables = "-e TEAMCITY_VERSION -e TEAMCITY_BUILDCONF_NAME -e TEAMCITY_PROJECT_NAME"
+    cmd = r"docker run --rm {mount_cmd} {environment_variables} -i {docker_image_full_name} " \
+          r"cmd /c {build_dir}\docker_wrapper.cmd".format(**locals()).split()
+
+    print("DEBUG - command to execute: '{}'".format(" ".join(cmd)))
+    call(cmd)
+    # ------ END run docker ------
+
+    # ------ START check exit code ------
+    exitcode_filepath = tc_checkout_dir + '/dockerTaskScript_exitcode'
+
+    if not os.path.isfile(exitcode_filepath):
+        msg = "Some error when run docker {}".format(docker_image_full_name)
+        teamcity_add_custom_status_and_message(msg, msg)
+        exit_with_error(1000, msg)
+
+    with open(exitcode_filepath, 'r') as file:
+        exit_str = str(file.read().strip())
+        if exit_str != "":
+            exit_code = int(exit_str)
+        else:
+            print('Exit code at file not found. Set it to 1')
+            exit_code = 1
+
+    print("Script EXITCODE='{}'".format(exit_code))
+
+    if exit_code:
+        msg = "Script return code {}".format(exit_code)
+        print('ERROR - {}'.format(msg))
+        teamcity_add_custom_status_and_message(msg)
+        exit_with_error(exit_code, msg)
+    # ------ END check exit code ------
+
+    teamcity_close_block("Run the container")
+
+
+if __name__ == "__main__":
+    docker_run('%devops_aisa_docker_user%',
+               '%devops_aisa_docker_passwd%',
+               '%devops_aisa_docker_registry%',
+               '%devops_aisa_docker_image_name%',
+               '%devops_aisa_arguments%',
+               '%teamcity.agent.work.dir%',
+               '%teamcity.build.default.checkoutDir%')
+"""
+import sys
+
+fileName = r"%teamcity.build.checkoutDir%\_meta_runner_wrapper.py"
+
+print("Custom script redirecting to file {}".format(fileName))
+
+with open(fileName, "w") as fH:
+    fH.write(script)]]></param>
+          <param name="python-script-mode" value="code" />
+          <param name="python-ver" value="*" />
+          <param name="teamcity.step.mode" value="default" />
+          <param name="teamcity.build.workingDir" value="%teamcity.build.checkoutDir%" />
+        </parameters>
+      </runner>
+      <runner name="AISA: Running" type="python">
+        <parameters>
+          <param name="bitness" value="*" />
+          <param name="python-exe" value="%Python.3%" />
+          <param name="python-kind" value="C" />
+          <param name="python-script-file-name" value="%teamcity.build.checkoutDir%\_meta_runner_wrapper.py" />
+          <param name="python-script-mode" value="file" />
+          <param name="python-ver" value="3" />
+          <param name="teamcity.step.mode" value="default" />
+        </parameters>
+      </runner>
+    </build-runners>
+    <requirements />
+  </settings>
+</meta-runner>
+

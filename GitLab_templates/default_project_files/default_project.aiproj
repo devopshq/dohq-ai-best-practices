@@ -1,0 +1,142 @@
+{
+    "ProjectName": "Project",
+    "ProgrammingLanguage": "Csharp"
+    "ScanAppType": "Configuration, Fingerprint, PmTaint, DependencyCheck",
+    "ThreadCount": 2,
+    "Site": "http://localhost",
+    "IsDownloadDependencies": true,
+
+    "IsUsePublicAnalysisMethod": true,
+    "IsUseEntryAnalysisPoint": true,
+
+    "ScanUnitTimeout": 360,
+    "PreprocessingTimeout": 60,
+    "CustomParameters": "--multifile",
+
+    "SkipFileFormats": ["*.7z", "*.bmp", "*.dib", "*.dll", "*.doc", "*.docx", "*.exe", "*.gif", "*.ico", "*.jfif", "*.jpe", "*.jpe6", "*.jpeg", "*.jpg", "*.odt", "*.pdb", "*.pdf", "*.png", "*.rar", "*.swf", "*.tif", "*.tiff", "*.zip"],
+    "SkipFilesFolders": ["\\\\devops-tools\\\\", "\\\\.git\\\\", "\\\\.gitignore", "\\\\.gitmodules", "\\\\.gitattributes", "\\\\$tf\\\\", "\\\\$BuildProcessTemplate\\\\", "\\\\.tfignore"],
+
+    "DisabledPatterns": ["145", "146", "148", "149"],
+    "DisabledTypes": [],
+
+    "UseIncrementalScan": true,
+    "FullRescanOnNewFilesAdded": true,
+
+    "ConsiderPreviousScan": true,
+    "HideSuspectedVulnerabilities": false,
+    "UseIssueTrackerIntegration": false,
+
+    "IsUnpackUserPackages": false,
+    "JavaParameters": null,
+    "JavaVersion": 0,
+    "UseJavaNormalizeVersionPattern": "true",
+    "JavaNormalizeVersionPattern": "-\\\\d+(\\\\.\\\\d+)*",
+
+    "JavaScriptProjectFile": null,
+    "JavaScriptProjectFolder": null,
+
+    "UseTaintAnalysis": true,
+    "UsePmAnalysis": true,
+    "DisableInterpretCores": false,
+
+    "UseDefaultFingerprints": true,
+    "UseCustomYaraRules": false,
+
+    "CustomHeaders": [["", ""]],
+    "Authentication": {
+        "auth_item": {
+            "domain": null,
+            "credentials": {
+                "cookie": null,
+                "type": 2,
+                "login": {
+                    "name": null,
+                    "value": null,
+                    "regexp": null,
+                    "is_regexp": false
+                },
+                "password": {
+                    "name": null,
+                    "value": null,
+                    "regexp": null,
+                    "is_regexp": false
+                }
+            },
+            "test_url": null,
+            "form_url": null,
+            "form_xpath": ".//form",
+            "regexp_of_success": null
+        }
+    },
+    "ProxySettings": {
+        "IsEnabled": false,
+        "Host": null,
+        "Port": null,
+        "Type": 0,
+        "Username": null,
+        "Password": null
+    },
+
+    "RunAutocheckAfterScan": false,
+    "AutocheckSite": "http://localhost",
+    "AutocheckCustomHeaders": [["", ""]],
+    "AutocheckAuthentication": {
+        "auth_item": {
+            "domain": null,
+            "credentials": {
+                "cookie": null,
+                "cookies": null,
+                "type": 2,
+                "login": {
+                    "name": null,
+                    "value": null,
+                    "regexp": null,
+                    "is_regexp": false
+                },
+                "password": {
+                    "name": null,
+                    "value": null,
+                    "regexp": null,
+                    "is_regexp": false
+                }
+            },
+            "test_url": null,
+            "form_url": null,
+            "form_xpath": ".//form",
+            "regexp_of_success": null
+        }
+    },
+    "AutocheckProxySettings": {
+        "IsEnabled": false,
+        "Host": null,
+        "Port": null,
+        "Type": 0,
+        "Username": null,
+        "Password": null
+    },
+
+    "SendEmailWithReportsAfterScan": false,
+    "CompressReport": false,
+
+    "EmailSettings": null,
+
+    "ReportParameters": {
+        "SaveAsPath": null,
+        "UseElectronicSignature": false,
+        "CertificatePath": null,
+        "Password": null,
+        "ShowSignatureTime": false,
+        "SignatureReason": null,
+        "Location": null,
+        "DoSignatureVisible": false,
+        "IncludeDiscardedVulnerabilities": false,
+        "IncludeSuppressedVulnerabilities": true,
+        "IncludeSuspectedVulnerabilities": false,
+        "IncludeGlossary": false,
+        "ConverHtmlToPdf": false,
+        "RemoveHtml": false,
+        "CreatePdfPrintVersion": false,
+        "MakeAFReport": false,
+        "IncludeDFD": false
+    }
+}

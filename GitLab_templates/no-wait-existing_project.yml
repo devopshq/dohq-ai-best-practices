@@ -1,0 +1,14 @@
+# (c) DevOpsHQ, 2020
+
+# This template is used for projects that were generated in advance with "no wait" mode.
+
+
+No-wait AIE scanning without aiproj:
+  image: [your-repo]/aisa-linux:latest
+  script:
+    - aisa --version
+    - aisa
+      --project-name $CI_PROJECT_PATH_SLUG
+      --scan-target ./
+      --no-wait
+  allow_failure: true

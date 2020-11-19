@@ -1,0 +1,15 @@
+# (c) DevOpsHQ, 2020
+
+# This template is used to generate projects without running a scan later
+
+Create proiect on AIE:
+  image: [your-repo]/aisa-linux:latest
+  before_script:
+    - aisa-set-settings                                 
+      --projectname $CI_PROJECT_NAME
+      --language $PROJECT_MAIN_LANGUAGE 
+  script:
+    - aisa --version
+    - aisa
+      --project-settings-file $CI_PROJECT_NAME.aiproj
+      --scan-off                                    

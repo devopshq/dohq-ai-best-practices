@@ -1,0 +1,18 @@
+# (c) DevOpsHQ, 2020
+
+# This template is used for projects that were generated in advance.
+
+Start AIE scan:
+  image: [your-repo]/aisa-linux:latest
+  script:
+    - aisa --version
+    - aisa
+      --project-name  $CI_PROJECT_PATH_SLUG
+      --scan-target ./
+      --reports "HTML,JSON"
+      --reports-folder ".report"
+  allow_failure: true
+  artifacts:
+    expire_in: 3 day
+    paths:
+      - .report/

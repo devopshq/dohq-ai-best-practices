@@ -1,0 +1,8 @@
+# (c) DevOpsHQ, 2020
+
+# --- Example template 2: non-existing project ------------------------
+
+include: https://gitlab.<your_company>.com/<your_project>/-/raw/<branch>/<path>/non-existing_project.yml
+
+variables:
+  PROJECT_LANG: csharp
