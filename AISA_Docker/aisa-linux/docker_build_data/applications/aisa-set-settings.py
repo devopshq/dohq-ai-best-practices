@@ -35,46 +35,13 @@ def check_args(projectname, language, languages, path_to_folder):
         print("-" * 50)
 
     if language in map(lambda x: x.lower(), languages):
-        if os.path.exists(path_to_folder):
-            print("[INFO]: Arguments is correct")
-        else:
-            sys.stderr.write("[ERROR]: Bad path\n")
-            sys.exit(0)
+        print("[INFO]: Arguments is correct")
     else:
         sys.stderr.write("[ERROR]: Unknown language\n")
         sys.exit(1)
 
 
-def check_environment(os_type, lang, path_to_folder):
-    if check_platform(os_type) == "Windows":
-        if lang == "csharp" or lang == "vb":
-            last_folder = path_to_folder.split("\\")[-1]
-            calc_name = [f for f in os.listdir(path_to_folder + r"\src") if f.endswith('.sln')][0]
-            sln = "src\\" + calc_name
-            full = path_to_folder + sln
-        else:
-            last_folder = path_to_folder.split("\\")[-1]
-            sln = "null"
-            full = "null"
-    else:
-        if lang == "csharp" or lang == "vb":
-            last_folder = path_to_folder.split("/")[-1]
-            try:
-                calc_name = [f for f in os.listdir(path_to_folder + "/src") if f.endswith('.sln')][0]
-                sln = "src/" + calc_name
-                full = path_to_folder + sln
-            except IndexError:
-                sys.stderr.write("[ERROR]: PATH path does not contain an sln file\n")
-                sys.exit(1)
-        else:
-            last_folder = path_to_folder.split("/")[-1]
-            sln = "null"
-            full = "null"
-
-    return last_folder, sln, full
-
-
-def create_json(projectname, lf, slnf, language, inclusion):
+def create_json(projectname, language, inclusion):
     config = r'''{
     "ProjectName": "$ProjectName",
     "ProgrammingLanguage": "$LANG",
@@ -246,15 +213,13 @@ def create_json(projectname, lf, slnf, language, inclusion):
     return json
 
 
-def print_info(projectname, language, folder, sln_file, path_to_file):
-    if folder == '':
+def print_info(projectname, language, path_to_file):
+    if path_to_file == '':
         folder = './'
     print("-" * 50)
     print("[INFO]: Project name: {projectname}".format(**locals()))
     print("[INFO]: File name:    {projectname}.aiproj".format(**locals()))
     print("[INFO]: Language:     {language}".format(**locals()))
-    print("[INFO]: SLN:          {sln_file}".format(**locals()))
-    print("[INFO]: Source:       {folder}".format(**locals()))
     print("[INFO]: Path:         {path_to_file}".format(**locals()))
     print("-" * 50)
 
@@ -268,11 +233,10 @@ def main(prj, lang, path, incl):
     # ------------- Run -------------
 
     check_args(prj, lang, langs, path)
-    lf, slnf, full = check_environment(os_type, lang, path)
-    json_file = create_json(prj, lf, slnf, lang, incl)
-    print_info(prj, lang, lf, slnf, path)
+    json_file = create_json(prj, lang, incl)
+    print_info(prj, lang, path)
 
-    proj = open("{prj}.aiproj".format(**locals()), "a")
+    proj = open("{prj}.aiproj".format(**locals()), "w")
     proj.write(json_file)
     proj.close()
     print("[INFO]: File {proj.name} was generated successfully".format(**locals()))
