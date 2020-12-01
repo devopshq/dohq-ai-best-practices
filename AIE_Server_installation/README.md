@@ -1,7 +1,7 @@
 # PT AI Install Wizard
 Автоматический установщик для анализатора кода Positive Technologies Application Inspector Enterprise.
 
-Раздел документации и скрипты инсталляции PT AI сопровождает Aleksandr Khudyshkin (AKhudyshkin@ptsecurity.com, [@alexkhudyshkin](https://github.com/alexkhudyshkin)). У него же вы можете запросить сертификаты для установки PT AI. 
+Раздел документации и скрипты инсталляции PT AI сопровождает Aleksandr Khudyshkin (AKhudyshkin@ptsecurity.com, [@alexkhudyshkin](https://github.com/alexkhudyshkin)). Для получения дистрибутива запросите бесплатный пилот по ссылке https://www.ptsecurity.com/ru-ru/products/ai/#free-demo.
 
 
 Убедитесь, что ваш сервер соотвествует рекомендуемым системным требованиям
