@@ -9,10 +9,11 @@
 | PT AI Enterprise Server                                     |    PT AI Enterprise Agent                                                   |
 |-------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Процессор Intel Core i7 с частотой 3,2 ГГц или аналоги      | Процессор Intel Core i7 с частотой 3,2 ГГц или аналоги                      |
-| От 8 ГБ оперативной памяти                                  | От 16 ГБ оперативной памяти                                                  |
-| Сетевой адаптер от 10 Мбит/с                                | Сетевой адаптер от 10 Мбит/с                                                |
-| От 200 ГБ на жестком диске                                  | Браузер: Mozilla Firefox 46 и выше, Google Chrome 50 и выше |
-| 64-разрядная версия Windows Server 2016 и выше           |                                                                             |
+| От 8 ГБ оперативной памяти                                  | От 16 ГБ оперативной памяти                                                 |
+| Сетевой адаптер от 100 Мбит/с                               | Сетевой адаптер от 100 Мбит/с                                               |
+| От 200 ГБ на жестком диске                                  | От 100 ГБ на жестком диске                                                  |
+| 64-разрядная версия Windows Server 2016 и выше              | 64-разрядная версия Windows Server 2016 и выше                              |
+| Браузер: Mozilla Firefox 46 и выше, Google Chrome 50 и выше |                                                                             |
 | Средство автоматизации Windows PowerShell версии 5.0 и выше |                                                                             |
 
 Для запуска:
@@ -21,8 +22,8 @@
 
 | Программное обеспечение                          | Ссылка на скачивание                                                                     |
 |--------------------------------------------------|------------------------------------------------------------------------------------------|
-| Win64 OpenSSL v1.1.1h Light                                    | https://slproweb.com/products/Win32OpenSSL.html                                           |
-| VC Redist x64                      | https://aka.ms/vs/16/release/vc_redist.x64.exe                                          |
+| Win64 OpenSSL v1.1.1h Light                      | https://slproweb.com/products/Win32OpenSSL.html                                          |
+| VC Redist x64                                    | https://aka.ms/vs/16/release/vc_redist.x64.exe                                           |
 | .NET Framework 4.8 (Windows Server 2012 R2 only) | https://dotnet.microsoft.com/download/dotnet-framework/thank-you/net48-offline-installer |
 | KB3191564 (Windows Server 2012 R2 only)          | http://www.catalog.update.microsoft.com/Search.aspx?q=3191564                            |
 
