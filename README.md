@@ -355,7 +355,12 @@ PT Application Inspector выделяется среди конкурентов 
 
 Превью этих отчетов ниже
 
+##### HTML:
+
 ![](/.media/22_Report_Preview_html.png)
+
+##### JSON:
+
 ![](/.media/23_Report_Preview_json.png)
 
 
