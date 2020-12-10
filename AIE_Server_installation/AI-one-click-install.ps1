@@ -1,14 +1,15 @@
 ﻿#Requires -RunAsAdministrator
 
 # Инсталлятор AI Enterprise и его окружения
-# версия 1.3 от 01.12.2020
-# (c) DevOpsHQ, 2020
-# (c) alexkhudyshkin, 2020
+# версия 1.4 от 10.12.2020
 
 Param (
 [string]$aiepath, # путь к каталогу с дистрибутивом AIE
 [string]$toolspath, # путь к каталогу, куда будут помещены артефакты инсталляции (логи, пароли) (по умолчанию - C:\AI-TOOLS)
 [switch]$skipagent, # пропустить этап установки агента сканирования
+[bool]$noad = 0, # установка с подключением к домену (0) или без (1)
+[string]$addadmin, # добавить администратора AI вручную по SID
+[switch]$uninstall, # полностью удалить AI Server и AI Agent вместе с зависимыми компонентами
 # параметры ниже могут быть не заданы - тогда будут сгенерированы самоподписанные сертификаты
 [string]$rootcertpath, # путь к корневому сертификату (pfx/crt)
 [string]$rootcertpass, # пароль от корневого сертификата (pfx)
@@ -37,21 +38,23 @@ function Check-NetFramework-Version {
 }
 
 # выясняем название текущей версии дистрибутива из каталога
-function Get-Current-Version-Path([String]$path, [String]$mask) {
+function Get-Current-Version-Path([string]$path, [string]$mask) {
 	$filename = $path+'\'+(Get-ChildItem "$($path)\$($mask)").Name
-	if (-Not [System.IO.File]::Exists($filename)) {
-		Write-Host "Ошибка: файл $($mask) не найден в каталоге $($path). Возможно, вы указали относительный путь вместо полного пути." -ForegroundColor Red
+	if (-Not (Test-Path $filename)) {
+		Write-Host "Ошибка: файл $($mask) не найден в каталоге $($path). Возможно, вы некорректно указали параметр aiepath." -ForegroundColor Red
 		Stop-Transcript
 		Exit 1
 	}
+	# разблокируем исполняемый файл для запуска
+	Get-Item $filename | Unblock-File
 	return $filename
 }
 
 # Обработка результата установки дистрибутива
-function Handle-Install-Result($name, $proc) {
+function Handle-Install-Result($name, $proc, $mode="установке") {
 	Wait-Process $proc.Id
 	if ($proc.ExitCode -ne 0) {
-		Write-Host "Ошибка: что-то пошло не так при установке $($name), код выхода $($proc.ExitCode). " -ForegroundColor Red	
+		Write-Host "Ошибка: что-то пошло не так при $($mode) $($name), код выхода $($proc.ExitCode). " -ForegroundColor Red	
 		Stop-Transcript
 		Exit 1
 	}
@@ -102,8 +105,7 @@ function Copy-AIE-Logs($ServiceDownList) {
 }
 
 # добавить текущего пользователя в качестве администратора AI через запрос в базу данных
-function AI-Add-Admin {
-	$sid = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
+function AI-Add-Admin($sid) {
 	$env:PGPASSWORD = $passwords['postgres']
 	."C:\Program Files\PostgreSQL\10\bin\psql.exe" -h 127.0.0.1 -p 5432 -U postgres -d ai_csi -c "INSERT INTO \`"GlobalMemberEntity\`" (\`"Sid\`", \`"RoleId\`") VALUES ('$sid', '1');"
 	# рестарт службы аутентификации
@@ -552,7 +554,7 @@ test:
   tags: 
     - aiee
   artifacts:
-    expire_in: 3 day
+    expire_in: 7 day
     paths:
       - .ptai/ 
 "@
@@ -579,8 +581,6 @@ $aireports = @"
 } ]
 "@
 
-#TODO: uninstall script
-
 # инициализация логирования
 Set-Location -Path $PSScriptRoot
 if ($toolspath -eq '') {$toolspath = "C:\AI-TOOLS"}
@@ -590,6 +590,51 @@ if (Test-Path $toolspath\logs\install.log) {
 }
 Start-Transcript -path $toolspath\logs\install.log -append
 date
+
+# добавление администратора в базу данных
+if ($addadmin -ne '') {
+	if (Test-Path "$toolspath\passwords.xml") {
+		$passwords = Import-Clixml -Path "$toolspath\passwords.xml"
+		AI-Add-Admin $addadmin
+		Stop-Transcript
+		Exit		
+	}
+	else {
+		Write-Host "Ошибка: файл с паролем от базы данных не найден по пути $toolspath\passwords.xml" -ForegroundColor Red
+		Stop-Transcript
+		Exit 1
+	}
+}
+
+# полное удаление серверных компонентов AI с компьютера
+if ($uninstall) {
+	if (Test-Path "C:\Program Files\Positive Technologies\Application Inspector Agent\unins000.exe") {
+		Write-Host "Удаляю AI Agent..." -ForegroundColor Yellow
+		$proc = Start-Process "C:\Program Files\Positive Technologies\Application Inspector Agent\unins000.exe" -ArgumentList "/verysilent /norestart" -passthru
+		Handle-Install-Result "AI Agent" $proc "удалении"
+	}
+	if (Test-Path "C:\Program Files\Positive Technologies\Application Inspector Server\unins000.exe") {
+		Write-Host "Удаляю AI Server, RabbitMQ, PostgreSQL..." -ForegroundColor Yellow
+		$proc = Start-Process "C:\Program Files\Positive Technologies\Application Inspector Server\unins000.exe" -ArgumentList "/verysilent /norestart" -passthru
+		Handle-Install-Result "AI Server" $proc "удалении"
+	}
+	if (Test-Path $env:appdata\RabbitMQ) {Remove-Item -Recurse -Force $env:appdata\RabbitMQ}
+	if (Test-Path "C:\Program Files\PostgreSQL") {Remove-Item -Recurse -Force "C:\Program Files\PostgreSQL"}
+	if (Test-Path $toolspath\certs) {Remove-Item -Recurse -Force $toolspath\certs}
+	if (Test-Path $toolspath\passwords.txt) {Remove-Item $toolspath\passwords.txt}
+	if (Test-Path $toolspath\passwords.xml) {Remove-Item $toolspath\passwords.xml}
+	Remove-Item $toolspath\readme.txt -ErrorAction SilentlyContinue
+	Remove-Item $toolspath\gitlab-ci-example.yml -ErrorAction SilentlyContinue
+	Remove-Item $toolspath\ai-reports.json -ErrorAction SilentlyContinue
+	Remove-Item $toolspath\server-config.json -ErrorAction SilentlyContinue
+	Write-Host "Удаление завершено." -ForegroundColor Yellow
+	Write-Host "При наличии ошибок убедитесь, пожалуйста, что все файлы из текста ошибки были удалены." -ForegroundColor Yellow
+	Write-Host "Рекомендуется провести перезагрузку компьютера, перезагрузить? (y/n) " -NoNewline -ForegroundColor Yellow
+	$answer = Read-Host
+	if ($answer -eq 'y') {Restart-Computer -Force}
+	Stop-Transcript
+	Exit
+}
 
 Write-Host '---ШАГ 1---' -ForegroundColor Green
 Write-Host 'Проверяю зависимости...' -ForegroundColor Yellow
@@ -612,7 +657,7 @@ try {
 		[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files\OpenSSL-Win64\bin", "Machine")
 		$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 	}
-	openssl genrsa -out 1.key 1024 2>$null
+	openssl genrsa -out 1.key 1024 2>&1>$null
 	Remove-Item 1.key -ErrorAction Stop
 	}
 catch {
@@ -621,15 +666,13 @@ catch {
 	Stop-Transcript
 	Exit 1
 }
-# разблокируем исполняемые файлы
-Get-ChildItem -Recurse $aiepath\*.exe | Unblock-File
 # подготавливаем каталоги для утилит
 if (-Not (Test-Path $toolspath\certs)) {mkdir -p $toolspath\certs >$null}
 # добавляем локальную переменную окружения с локацией ERLANG
 [Environment]::SetEnvironmentVariable("ERLANG_HOME","C:\Program Files\erl9.3","User")
 $env:ERLANG_HOME = "C:\Program Files\erl9.3"
 # импортируем пароли либо генерируем их
-if ([System.IO.File]::Exists("$toolspath\passwords.xml")) {
+if (Test-Path "$toolspath\passwords.xml") {
 	$passwords = Import-Clixml -Path "$toolspath\passwords.xml"
 }
 else {
@@ -646,7 +689,7 @@ else {
 # устанавливаем AI Viewer
 Write-Host '---ШАГ 2---' -ForegroundColor Green
 # проверяем если AI Viewer уже установлен
-if ([System.IO.File]::Exists("C:\Program Files\Positive Technologies\Application Inspector Viewer\ApplicationInspector.exe")) {
+if (Test-Path "C:\Program Files\Positive Technologies\Application Inspector Viewer\ApplicationInspector.exe") {
 	Write-Host 'Этот шаг уже был выполнен, переходим к следующему.' -ForegroundColor Yellow
 }
 else {
@@ -658,11 +701,12 @@ else {
 	if ($AIViewer -ne $null) {Stop-Process $AIViewer}
 }
 # проверка домена
-[bool] $noad = 1
-$myFQDN = (Get-WmiObject win32_computersystem).DNSHostName
-$domain = "localhost"
-# переопределяем параметры если установка с доменом
-if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain) {
+if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -and -not $noad) {
+	if ($env:UserName -eq "Administrator") {
+		Write-Host "Ошибка: установка под доменной учётной записью Administrator не поддерживается. Пожалуйста, запустите установку под другим пользователем." -ForegroundColor Red
+		Stop-Transcript
+		Exit 1
+	}
 	# преобразуем утилиту ADTOOL hex -> exe
 	if (-Not (Test-Path "$toolspath\ADTool.exe")) {
 		[IO.File]::WriteAllBytes("$toolspath\ADTool.exe", [Convert]::FromBase64String($hex))
@@ -671,6 +715,7 @@ if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain) {
 	Write-Host "Проверяю связь с домен контроллером..." -ForegroundColor Yellow
 	$domain = ((Get-WmiObject win32_computersystem).Domain).ToLower()
 	$myFQDN = ((Get-WmiObject win32_computersystem).DNSHostName+"."+$domain)
+	[bool]$noad = 1
 	$newdomain = $domain
 	do {
 		if ($matches -ne $null) {
@@ -687,12 +732,21 @@ if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain) {
 	# если не нашли в текущем домене, сокращаем название домена до следующей точки и пробуем снова
 	# это связано с тем, что иногда для ADTool нужно указывать корневой домен
 	while ($newdomain -match '(?<=\.).*')
+	if ($noad) {
+		$myFQDN = (Get-WmiObject win32_computersystem).DNSHostName
+		$domain = "localhost"
+	}
+}
+else {
+	[bool]$noad = 1
+	$myFQDN = (Get-WmiObject win32_computersystem).DNSHostName
+	$domain = "localhost"
 }
 
 # обрабатываем сертификаты
 Write-Host '---ШАГ 3---' -ForegroundColor Green
 # проверяем что этот шаг не выполнялся
-if ([System.IO.File]::Exists("$toolspath\certs\aiserver.pfx")) {
+if (Test-Path "$toolspath\certs\aiserver.pfx") {
 	Write-Host 'Этот шаг уже был выполнен, переходим к следующему.' -ForegroundColor Yellow
 	if ($servercertpass -eq '') {$servercertpass = $passwords['serverCertificate']}
 }
@@ -700,8 +754,8 @@ else {
 	if (($servercertpath -eq '')) {
 		# очищаем файлы предыдущей попытки генерации сертификата
 		if (Test-Path "$toolspath\certs\ROOT") {
-			rmdir /S /Q "$toolspath\certs" >$null
-			mkdir "$toolspath\certs" >$null
+			Remove-Item -Recurse -Force "$toolspath\certs"
+			New-Item -Path "$toolspath\certs" -ItemType Directory | Out-Null
 		}
 		Write-Host 'Генерирую самоподписанные сертификаты...' -ForegroundColor Yellow
 		Generate-SelfsignedCerts $noad $toolspath
@@ -736,7 +790,7 @@ else {
 	}
 	
 	# добавляем рутовый сертификат в хранилища
-	if ([System.IO.File]::Exists("$toolspath\certs\airoot.crt")) {
+	if (Test-Path "$toolspath\certs\airoot.crt") {
 		Write-Host 'Добавляю рутовый сертификат в хранилище сертификатов Windows...' -ForegroundColor Yellow
 		Import-Certificate -FilePath "$toolspath\certs\airoot.crt" -CertStoreLocation Cert:\LocalMachine\Root
 	}
@@ -744,7 +798,7 @@ else {
 		Write-Host 'Предупреждение: корневой сертификат не добавлен в хранилище Windows.' -ForegroundColor Yellow
 	}
 	# добавляем промежуточный сертификат в хранилища, если он есть
-	if ([System.IO.File]::Exists("$toolspath\certs\aiint.crt")) {
+	if (Test-Path "$toolspath\certs\aiint.crt") {
 		Write-Host 'Добавляю промежуточный сертификат в хранилище сертификатов Windows...' -ForegroundColor Yellow
 		Import-Certificate -FilePath "$toolspath\certs\aiint.crt" -CertStoreLocation Cert:\LocalMachine\CA
 	}
@@ -760,10 +814,15 @@ else {
 # устанавливаем AI Server
 Write-Host '---ШАГ 4---' -ForegroundColor Green
 # проверяем если AI Server уже установлен
-if ([System.IO.File]::Exists("C:\Program Files\Positive Technologies\Application Inspector Server\Services\gateway\AIE.Gateway.exe")) {
+if (Test-Path "C:\Program Files\Positive Technologies\Application Inspector Server\Services\gateway\AIE.Gateway.exe") {
 	Write-Host 'Этот шаг уже был выполнен, переходим к следующему.' -ForegroundColor Yellow
 }
 else {
+	if (Test-Path $env:appdata\RabbitMQ\db) {
+		Write-Host "Ошибка: обнаружены следы предыдущей установки Application Inspector, что может привести к ошибкам при повторной установке. Пожалуйста, выполните скрипт с параметром -uninstall, после чего запустите установку повторно." -ForegroundColor Red
+		Stop-Transcript
+		Exit 1
+	}
 	# проверка доступности портов
 	[int32[]]$ports = 80,443,5432,5672,5001,7001,5002,5004,4444,5005,5006,5007,8200,5003,8500,5010,5011,5012,5008
 	$errcnt = 0
@@ -792,6 +851,14 @@ else {
 	$config = $config -ireplace '%LicenseServerHost%',"$myFQDN"
 	$config -ireplace '%Host%',"$myFQDN" | Set-Content -Path $toolspath\server-config.json		
 	
+	# Добавляем правила на межсетевом экране для RabbitMQ (виртуальной машины erlang)
+	New-NetFirewallRule -DisplayName "erl" -Direction Inbound -Program "C:\Program Files\erl9.3\bin\erl.exe" -Action allow -Protocol TCP | Out-Null
+	New-NetFirewallRule -DisplayName "erl" -Direction Inbound -Program "C:\Program Files\erl9.3\bin\erl.exe" -Action allow -Protocol UDP | Out-Null
+	New-NetFirewallRule -DisplayName "epmd" -Direction Inbound -Program "C:\Program Files\erl9.3\erts-9.3\bin\epmd.exe" -Action allow -Protocol TCP | Out-Null
+	New-NetFirewallRule -DisplayName "epmd" -Direction Inbound -Program "C:\Program Files\erl9.3\erts-9.3\bin\epmd.exe" -Action allow -Protocol UDP | Out-Null
+	Set-NetFirewallRule -DisplayName "erl" -Profile Any | Out-Null
+	Set-NetFirewallRule -DisplayName "epmd" -Profile Any | Out-Null
+	
 	# производим установку сервера
 	# с флагом /noad если не смогли найти домен
 	if ($noad) {
@@ -806,6 +873,8 @@ else {
 	xcopy "C:\ProgramData\Application Inspector\Logs\deploy" $toolspath\logs\deploy\ /E /Y >$null
 	# дополнительные манипуляции для установок без домена
 	if ($noad) {
+		# выключаем окно первого запуска IE чтобы работали запросы через функцию Invoke-WebRequest
+		Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2
         # получаем мастер-токен консула
 		$conf_consul = Get-Content -path 'C:\Program Files\Positive Technologies\Application Inspector Server\Services\consul\serverConfig.json' | ConvertFrom-Json
         $consul_token = $conf_consul.acl.tokens.master
@@ -817,7 +886,7 @@ else {
         $res = $json | ConvertTo-json
         Invoke-WebRequest -Uri "http://localhost:8500/v1/kv/services/ADSettings?dc=dc1" -Method "PUT" -Headers @{"X-Consul-Token"="$consul_token"} -ContentType "application/json; charset=UTF-8" -Body "$res"
 		# добавляем текущего пользователя в качестве админа через базу данных
-		AI-Add-Admin
+		AI-Add-Admin ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
 	}
 }
 # проверяем наличие служб
@@ -876,7 +945,7 @@ if ($ServiceDownList.Count -gt 0) {
 # устанавливаем AI Agent
 Write-Host '---ШАГ 5---' -ForegroundColor Green
 # проверяем что AI Agent уже установлен
-if ([System.IO.File]::Exists("C:\Program Files\Positive Technologies\Application Inspector Agent\aic.exe")) {
+if (Test-Path "C:\Program Files\Positive Technologies\Application Inspector Agent\aic.exe") {
 	Write-Host 'Этот шаг уже был выполнен, переходим к следующему.' -ForegroundColor Yellow
 }
 elseif ($skipagent) {
