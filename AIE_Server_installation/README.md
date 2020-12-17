@@ -22,8 +22,8 @@
 
 | Программное обеспечение                          | Ссылка на скачивание                                                                     |
 |--------------------------------------------------|------------------------------------------------------------------------------------------|
-| Win64 OpenSSL v1.1.1h Light                      | https://slproweb.com/products/Win32OpenSSL.html                                          |
-| VC Redist x64                                    | https://aka.ms/vs/16/release/vc_redist.x64.exe                                           |
+| Win64 OpenSSL v1.1.1h Light (если генерируются самоподписанные сертификаты)                      | https://slproweb.com/products/Win32OpenSSL.html                                          |
+| VC Redist x64 (если генерируются самоподписанные сертификаты)                                   | https://aka.ms/vs/16/release/vc_redist.x64.exe                                           |
 | .NET Framework 4.8 (Windows Server 2012 R2 only) | https://dotnet.microsoft.com/download/dotnet-framework/thank-you/net48-offline-installer |
 | KB3191564 (Windows Server 2012 R2 only)          | http://www.catalog.update.microsoft.com/Search.aspx?q=3191564                            |
 

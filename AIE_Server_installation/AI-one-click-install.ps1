@@ -1,7 +1,9 @@
 ﻿#Requires -RunAsAdministrator
 
 # Инсталлятор AI Enterprise и его окружения
-# версия 1.4 от 10.12.2020
+# версия 1.5 от 17.12.2020
+# (c) DevOpsHQ, 2020
+# (c) alexkhudyshkin, 2020
 
 Param (
 [string]$aiepath, # путь к каталогу с дистрибутивом AIE
@@ -337,7 +339,6 @@ basicConstraints        = CA:FALSE
 	}
 	$tmppath = $toolspath -ireplace '\\',"/"
 	# патчим конфиги
-	Write-Host "Запускаю процедуру генерации самоподписанных сертификатов..." -ForegroundColor Yellow
 	if (-Not (Test-Path $toolspath\certs\conf)) {mkdir -p $toolspath\certs\conf >$null}
 	$root_conf = $root_conf -ireplace 'test.com',"$current_domain"
 	$root_conf = $root_conf -ireplace '%toolspath%',"$tmppath" | Set-Content -Path "$toolspath\certs\conf\root_ca.conf"
@@ -372,12 +373,12 @@ basicConstraints        = CA:FALSE
 	New-Item "$ROOT_CA_HOME\db\$ROOT_CA_NAME.db.attr" | Out-Null
 	
 	# генерируем корневой сертификат
-	openssl genrsa -out $ROOT_CA_HOME\private\$ROOT_CA_NAME.pem.key $ca_keylen
-	openssl req -new -config $CA_CONF_DIR\root_ca.conf -out $ROOT_CA_HOME\$ROOT_CA_NAME.pem.csr -key $ROOT_CA_HOME\private\$ROOT_CA_NAME.pem.key
-	openssl ca -selfsign -batch -config $CA_CONF_DIR\root_ca.conf -in $ROOT_CA_HOME\$ROOT_CA_NAME.pem.csr -out $ROOT_CA_HOME\certs\$ROOT_CA_NAME.pem.crt -extensions root_ca_ext -notext
-	openssl x509 -outform DER -in $ROOT_CA_HOME\certs\$ROOT_CA_NAME.pem.crt -out $ROOT_CA_HOME\certs\$ROOT_CA_NAME.der.crt
-	openssl ca -gencrl -batch -config $CA_CONF_DIR\root_ca.conf -out $ROOT_CA_HOME\$ROOT_CA_NAME.pem.crl
-	openssl crl -in $ROOT_CA_HOME\$ROOT_CA_NAME.pem.crl -outform DER -out $ROOT_CA_HOME\$ROOT_CA_NAME.der.crl
+	openssl genrsa -out $ROOT_CA_HOME\private\$ROOT_CA_NAME.pem.key $ca_keylen 2>&1>$null
+	openssl req -new -config $CA_CONF_DIR\root_ca.conf -out $ROOT_CA_HOME\$ROOT_CA_NAME.pem.csr -key $ROOT_CA_HOME\private\$ROOT_CA_NAME.pem.key 2>&1>$null
+	openssl ca -selfsign -batch -config $CA_CONF_DIR\root_ca.conf -in $ROOT_CA_HOME\$ROOT_CA_NAME.pem.csr -out $ROOT_CA_HOME\certs\$ROOT_CA_NAME.pem.crt -extensions root_ca_ext -notext 2>&1>$null
+	openssl x509 -outform DER -in $ROOT_CA_HOME\certs\$ROOT_CA_NAME.pem.crt -out $ROOT_CA_HOME\certs\$ROOT_CA_NAME.der.crt 2>&1>$null
+	openssl ca -gencrl -batch -config $CA_CONF_DIR\root_ca.conf -out $ROOT_CA_HOME\$ROOT_CA_NAME.pem.crl 2>&1>$null
+	openssl crl -in $ROOT_CA_HOME\$ROOT_CA_NAME.pem.crl -outform DER -out $ROOT_CA_HOME\$ROOT_CA_NAME.der.crl 2>&1>$null
 	
 	# INTER
 	$INT_CA_HOME = "$toolspath\certs\INT"
@@ -397,28 +398,28 @@ basicConstraints        = CA:FALSE
 	New-Item "$INT_CA_HOME\db\$INT_CA_NAME.db.attr" | Out-Null
 	
 	# генерируем промежуточный сертификат
-	openssl genrsa -out $INT_CA_HOME\private\$INT_CA_NAME.pem.key $ca_keylen
-	openssl req -new -config $CA_CONF_DIR\int_ca.conf -out $INT_CA_HOME\$INT_CA_NAME.pem.csr -key $INT_CA_HOME\private\$INT_CA_NAME.pem.key
-	openssl ca -batch -config $CA_CONF_DIR\root_ca.conf -in $INT_CA_HOME\$INT_CA_NAME.pem.csr -out $INT_CA_HOME\certs\$INT_CA_NAME.pem.crt -extensions signing_ca_ext -policy extern_pol -notext
-	openssl x509 -outform DER -in $INT_CA_HOME\certs\$INT_CA_NAME.pem.crt -out $INT_CA_HOME\certs\$INT_CA_NAME.der.crt
-	openssl ca -gencrl -batch  -config $CA_CONF_DIR\int_ca.conf -out $INT_CA_HOME\$INT_CA_NAME.pem.crl
-	openssl crl -in $INT_CA_HOME\$INT_CA_NAME.pem.crl -outform DER -out $INT_CA_HOME\$INT_CA_NAME.der.crl
+	openssl genrsa -out $INT_CA_HOME\private\$INT_CA_NAME.pem.key $ca_keylen 2>&1>$null
+	openssl req -new -config $CA_CONF_DIR\int_ca.conf -out $INT_CA_HOME\$INT_CA_NAME.pem.csr -key $INT_CA_HOME\private\$INT_CA_NAME.pem.key 2>&1>$null
+	openssl ca -batch -config $CA_CONF_DIR\root_ca.conf -in $INT_CA_HOME\$INT_CA_NAME.pem.csr -out $INT_CA_HOME\certs\$INT_CA_NAME.pem.crt -extensions signing_ca_ext -policy extern_pol -notext 2>&1>$null
+	openssl x509 -outform DER -in $INT_CA_HOME\certs\$INT_CA_NAME.pem.crt -out $INT_CA_HOME\certs\$INT_CA_NAME.der.crt 2>&1>$null
+	openssl ca -gencrl -batch  -config $CA_CONF_DIR\int_ca.conf -out $INT_CA_HOME\$INT_CA_NAME.pem.crl 2>&1>$null
+	openssl crl -in $INT_CA_HOME\$INT_CA_NAME.pem.crl -outform DER -out $INT_CA_HOME\$INT_CA_NAME.der.crl 2>&1>$null
 	
 	# ssl.server
 	Remove-Item -path "$INT_CA_HOME\temp" -recurse -ErrorAction Ignore | Out-Null
 	New-Item -Path "$INT_CA_HOME\temp" -ItemType Directory | Out-Null
 	
 	# генерируем серверный сертификат
-	openssl req -new -config $CA_CONF_DIR\ssl.server.conf -out $INT_CA_HOME\temp\ssl.server.pem.csr -keyout $INT_CA_HOME\temp\ssl.server.pem.key
-	openssl ca -batch -config $CA_CONF_DIR\int_ca.conf -in $INT_CA_HOME\temp\ssl.server.pem.csr -out $INT_CA_HOME\temp\ssl.server.pem.crt -policy extern_pol -extensions server_ext -notext
+	openssl req -new -config $CA_CONF_DIR\ssl.server.conf -out $INT_CA_HOME\temp\ssl.server.pem.csr -keyout $INT_CA_HOME\temp\ssl.server.pem.key 2>&1>$null
+	openssl ca -batch -config $CA_CONF_DIR\int_ca.conf -in $INT_CA_HOME\temp\ssl.server.pem.csr -out $INT_CA_HOME\temp\ssl.server.pem.crt -policy extern_pol -extensions server_ext -notext 2>&1>$null
 	$out = openssl x509 -in $INT_CA_HOME\temp\ssl.server.pem.crt -serial -noout
 	$path = ([regex]"serial=([\d]{1,})").Matches($out)[0].Groups[1].Value
 	$OUT_FOLDER_SRV = "$toolspath\certs\INT\out\$path"
 	New-Item -Path "$OUT_FOLDER_SRV" -ItemType Directory | Out-Null
 	Move-Item -Path "$INT_CA_HOME\temp\*" -Destination "$OUT_FOLDER_SRV" | Out-Null
-	openssl x509 -outform DER -in $OUT_FOLDER_SRV\ssl.server.pem.crt -out $OUT_FOLDER_SRV\ssl.server.der.crt	
-	openssl pkcs12 -export -name "SSL server certificate" -inkey $OUT_FOLDER_SRV\ssl.server.pem.key -in $OUT_FOLDER_SRV\ssl.server.pem.crt -out $OUT_FOLDER_SRV\ssl.server.brief.pfx -password pass:"$($passwords['serverCertificate'])"
-	openssl pkcs12 -in $OUT_FOLDER_SRV\ssl.server.brief.pfx -out $OUT_FOLDER_SRV\ssl.server.brief.pem -passin pass:"$($passwords['serverCertificate'])" -passout pass:"$($passwords['serverCertificate'])"
+	openssl x509 -outform DER -in $OUT_FOLDER_SRV\ssl.server.pem.crt -out $OUT_FOLDER_SRV\ssl.server.der.crt 2>&1>$null
+	openssl pkcs12 -export -name "SSL server certificate" -inkey $OUT_FOLDER_SRV\ssl.server.pem.key -in $OUT_FOLDER_SRV\ssl.server.pem.crt -out $OUT_FOLDER_SRV\ssl.server.brief.pfx -password pass:"$($passwords['serverCertificate'])" 2>&1>$null
+	openssl pkcs12 -in $OUT_FOLDER_SRV\ssl.server.brief.pfx -out $OUT_FOLDER_SRV\ssl.server.brief.pem -passin pass:"$($passwords['serverCertificate'])" -passout pass:"$($passwords['serverCertificate'])" 2>&1>$null
 	
 	Copy-Item $OUT_FOLDER_SRV\ssl.server.brief.pfx $toolspath\certs\aiserver.pfx | Out-Null
 }
@@ -470,6 +471,7 @@ $readme = @"
 ---ПОЛУЧЕНИЕ ЛИЦЕНЗИИ---
 1. Откройте в браузере https://%myFQDN%/ui/admin/settings#license
 	Ваш логин: %username%
+	Ваш пароль: тот же что для входа в Windows
 2. Нажмите Сгенерировать фингерпринт
 3. Отправьте файл специалисту Positive Technologies для получения лицензии
 
@@ -536,6 +538,9 @@ $readme = @"
 10. Полный список доступных опций плагина можно получить, если обратиться к нему без параметров:
 	> java -jar ptai-cli-plugin.jar
 
+---ПРОДВИНУТЫЕ МЕТОДИКИ ВСТРАИВАНИЯ В CI/CD---
+См. пример интеграции внутри компании Positive Technologies тут: https://github.com/devopshq/dohq-ai-best-practices
+
 ---ПАРОЛИ---
 Пароли, заданные в процессе установки, сохранены в файле %toolspath%\passwords.txt. Пожалуйста, сохраните их в безопасном месте и удалите файлы passwords.txt и passwords.xml.
 
@@ -555,30 +560,43 @@ test:
     - aiee
   artifacts:
     expire_in: 7 day
+	when: always
     paths:
       - .ptai/ 
 "@
 
 $aireports = @"
-[ {
-  "template" : "Отчет по результатам сканирования",
-  "format" : "HTML",
-  "locale" : "RU",
-  "name" : "ai.results.filtered.html",
-  "filters": {
-    "issueLevel": "HIGH",
-    "exploitationCondition": "ALL",
-    "scanMode": "FromEntryPoint",
-    "suppressStatus": "ALL",
-    "confirmationStatus": "ALL",
-    "sourceType": "ALL"
-  }
-},{
-  "template" : "Отчет PCI DSS 3.2",
-  "format" : "HTML",
-  "locale" : "RU",
-  "name" : "pci.dss.3.2.ru.html"
-} ]
+{
+  "report" : [ {
+    "fileName" : "report.ru.html",
+    "locale" : "RU",
+    "format" : "HTML",
+    "template" : "Отчет по результатам сканирования",
+	"filters": {
+		"issueLevel": "HIGH",
+		"exploitationCondition": "ALL",
+		"scanMode": "FROMENTRYPOINT",
+		"suppressStatus": "ALL",
+		"confirmationStatus": "ALL",
+		"sourceType": "ALL"
+	}
+  } ],
+  "data" : [ {
+    "fileName" : "data.en.json",
+    "locale" : "EN",
+    "format" : "JSON",
+    "filters": {
+      "issueLevel": "HIGH"
+    }
+  }, {
+    "fileName" : "data.ru.xml",
+    "locale" : "RU",
+    "format" : "XML"
+  } ],
+  "raw" : [ {
+    "fileName" : "raw.json"
+  } ]
+}
 "@
 
 # инициализация логирования
@@ -586,9 +604,15 @@ Set-Location -Path $PSScriptRoot
 if ($toolspath -eq '') {$toolspath = "C:\AI-TOOLS"}
 if (-Not (Test-Path $toolspath\logs)) {mkdir $toolspath\logs >$null}
 if (Test-Path $toolspath\logs\install.log) {
-	Move-Item $toolspath\logs\install.log "$toolspath\logs\install-$((Get-Date).Ticks).log"
+	# при повторной установке может возникать ситуация, что файл лога заблокирован
+	try {
+		Move-Item $toolspath\logs\install.log "$toolspath\logs\install-$((Get-Date).Ticks).log"
+		Start-Transcript -path $toolspath\logs\install.log -append
+	}
+	catch {
+		Start-Transcript -path "$toolspath\logs\install-alt-$((Get-Date).Ticks).log" -append
+	}
 }
-Start-Transcript -path $toolspath\logs\install.log -append
 date
 
 # добавление администратора в базу данных
@@ -649,22 +673,24 @@ if ($psver.version.Major -lt 5) {
 }
 Check-NetFramework-Version
 # проверка openssl
-try {
-	# обновляем знания текущей сессии Powershell о Path
-	$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-	if (-Not ($env:Path.ToLower().contains('openssl')) -And (Test-Path "C:\Program Files\OpenSSL-Win64\bin\openssl.exe")) {
-		# обновляем глобальную переменную Path
-		[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files\OpenSSL-Win64\bin", "Machine")
+if ($servercertpath -eq '') {
+	try {
+		# обновляем знания текущей сессии Powershell о Path
 		$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+		if (-Not ($env:Path.ToLower().contains('openssl')) -And (Test-Path "C:\Program Files\OpenSSL-Win64\bin\openssl.exe")) {
+			# обновляем глобальную переменную Path
+			[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files\OpenSSL-Win64\bin", "Machine")
+			$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+		}
+		openssl genrsa -out 1.key 1024 2>&1>$null
+		Remove-Item 1.key -ErrorAction Stop
+		}
+	catch {
+		Write-Host 'Ошибка: пожалуйста, установите OpenSSL, пропишите его в переменную окружения PATH и перезапустите Powershell.' -ForegroundColor Red
+		Write-Host 'https://slproweb.com/products/Win32OpenSSL.html'
+		Stop-Transcript
+		Exit 1
 	}
-	openssl genrsa -out 1.key 1024 2>&1>$null
-	Remove-Item 1.key -ErrorAction Stop
-	}
-catch {
-	Write-Host 'Ошибка: пожалуйста, установите OpenSSL, пропишите его в переменную окружения PATH и перезапустите Powershell.' -ForegroundColor Red
-	Write-Host 'https://slproweb.com/products/Win32OpenSSL.html'
-	Stop-Transcript
-	Exit 1
 }
 # подготавливаем каталоги для утилит
 if (-Not (Test-Path $toolspath\certs)) {mkdir -p $toolspath\certs >$null}
@@ -701,7 +727,7 @@ else {
 	if ($AIViewer -ne $null) {Stop-Process $AIViewer}
 }
 # проверка домена
-if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -and -not $noad) {
+if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -and (-Not $noad)) {
 	if ($env:UserName -eq "Administrator") {
 		Write-Host "Ошибка: установка под доменной учётной записью Administrator не поддерживается. Пожалуйста, запустите установку под другим пользователем." -ForegroundColor Red
 		Stop-Transcript
@@ -732,6 +758,7 @@ if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -and -not $noad) {
 	# если не нашли в текущем домене, сокращаем название домена до следующей точки и пробуем снова
 	# это связано с тем, что иногда для ADTool нужно указывать корневой домен
 	while ($newdomain -match '(?<=\.).*')
+	Remove-Item "$toolspath\ADTool.exe"
 	if ($noad) {
 		$myFQDN = (Get-WmiObject win32_computersystem).DNSHostName
 		$domain = "localhost"
@@ -751,7 +778,7 @@ if (Test-Path "$toolspath\certs\aiserver.pfx") {
 	if ($servercertpass -eq '') {$servercertpass = $passwords['serverCertificate']}
 }
 else {
-	if (($servercertpath -eq '')) {
+	if ($servercertpath -eq '') {
 		# очищаем файлы предыдущей попытки генерации сертификата
 		if (Test-Path "$toolspath\certs\ROOT") {
 			Remove-Item -Recurse -Force "$toolspath\certs"
@@ -772,42 +799,45 @@ else {
 	else {
 		Copy-Item $servercertpath "$toolspath\certs\aiserver.pfx"
 	}
-	
-	# разобрать pfx до crt в цепочке сертификатов
-	# root
-	if ($rootcertpass -ne '') {
-		openssl pkcs12 -clcerts -nokeys -in $rootcertpath -out "$toolspath\certs\airoot.crt" -password pass:$rootcertpass -passin pass:$rootcertpass
+	# добавляем сертификаты в хранилище Windows
+	if ($intcertpath -ne '' -and (Test-Path $intcertpath)) {
+		Write-Host 'Импортирую промежуточный сертификат в хранилище сертификатов Windows...' -ForegroundColor Yellow
+		if ($intcertpath -like '*.pfx') {
+			$int = Import-PfxCertificate -FilePath $intcertpath -Password (ConvertTo-SecureString -String $intcertpass -AsPlainText -Force) -CertStoreLocation Cert:\LocalMachine\CA
+		}
+		else {
+			$int = Import-Certificate -FilePath $intcertpath -CertStoreLocation Cert:\LocalMachine\CA
+		}
+		# формируем цепочку сертификатов: промежуточный
+		@(
+		'-----BEGIN CERTIFICATE-----'
+		[System.Convert]::ToBase64String($int.RawData, 'InsertLineBreaks')
+		'-----END CERTIFICATE-----'
+		) | Out-File -FilePath "$toolspath\certs\ai-chain.crt" -Encoding ascii
 	}
-	elseif ($rootcertpath -ne '') {
-		Copy-Item $rootcertpath "$toolspath\certs\airoot.crt"
+	if ($rootcertpath -ne '' -and (Test-Path $rootcertpath)) {
+		Write-Host 'Импортирую корневой сертификат в хранилище сертификатов Windows...' -ForegroundColor Yellow
+		if ($rootcertpath -like '*.pfx') {
+			$root = Import-PfxCertificate -FilePath $rootcertpath -Password (ConvertTo-SecureString -String $rootcertpass -AsPlainText -Force) -CertStoreLocation Cert:\LocalMachine\Root
+		}
+		else {
+			$root = Import-Certificate -FilePath $rootcertpath -CertStoreLocation Cert:\LocalMachine\Root
+		}
+		# формируем цепочку сертификатов: корневой+промежуточный
+		@(
+		'-----BEGIN CERTIFICATE-----'
+		[System.Convert]::ToBase64String($root.RawData, 'InsertLineBreaks')
+		'-----END CERTIFICATE-----'
+		) | Out-File -FilePath "$toolspath\certs\ai-chain.crt" -Encoding ascii -Append
 	}
-	# intermediate
-	if ($intcertpass -ne '') {
-		openssl pkcs12 -clcerts -nokeys -in $intcertpath -out "$toolspath\certs\airoot.crt" -password pass:$intcertpass -passin pass:$intcertpass
-	}
-	elseif ($intcertpath -ne '') {
-		Copy-Item $intcertpath "$toolspath\certs\aiint.crt"
-	}
-	
-	# добавляем рутовый сертификат в хранилища
-	if (Test-Path "$toolspath\certs\airoot.crt") {
-		Write-Host 'Добавляю рутовый сертификат в хранилище сертификатов Windows...' -ForegroundColor Yellow
-		Import-Certificate -FilePath "$toolspath\certs\airoot.crt" -CertStoreLocation Cert:\LocalMachine\Root
-	}
-	else {
-		Write-Host 'Предупреждение: корневой сертификат не добавлен в хранилище Windows.' -ForegroundColor Yellow
-	}
-	# добавляем промежуточный сертификат в хранилища, если он есть
-	if (Test-Path "$toolspath\certs\aiint.crt") {
-		Write-Host 'Добавляю промежуточный сертификат в хранилище сертификатов Windows...' -ForegroundColor Yellow
-		Import-Certificate -FilePath "$toolspath\certs\aiint.crt" -CertStoreLocation Cert:\LocalMachine\CA
-	}
-	# формируем цепочку сертификатов корневой+промежуточный
-	if (Test-Path "$toolspath\certs\aiint.crt") {
-		Get-Content "$toolspath\certs\airoot.crt", "$toolspath\certs\aiint.crt" | out-file "$toolspath\certs\ai-chain.crt"
-	}
-	else {
-		Copy-Item "$toolspath\certs\airoot.crt" "$toolspath\certs\ai-chain.crt"
+	Write-Host "Импортирую серверный сертификат и проверяю его..." -ForegroundColor Yellow	
+	$servpfx = Import-PfxCertificate -FilePath "$toolspath\certs\aiserver.pfx" -Password (ConvertTo-SecureString -String $servercertpass -AsPlainText -Force) -CertStoreLocation Cert:\LocalMachine\My
+	Test-Certificate $servpfx -ea SilentlyContinue | Out-Null
+	# при проверке сертификата нас интересует только ошибка с цепочкой. try catch тут не ловит ошибку, поэтому достаём её из системной переменной
+	if ($Error[0].exception -like '*CERT_E_CHAINING*') {
+		Write-Host "Ошибка: цепочка доверия серверного сертификата нарушена. Пожалуйста, исправьте ошибку и запустите установку повторно." -ForegroundColor Red
+		Stop-Transcript
+		Exit 1
 	}
 }
 
@@ -849,8 +879,7 @@ else {
 	$config = $config -ireplace '%AdminsSamAccountNames%',"$($env:UserName)"
 	$config = $config -ireplace '%ActiveDirectoryHost%',"$domain"
 	$config = $config -ireplace '%LicenseServerHost%',"$myFQDN"
-	$config -ireplace '%Host%',"$myFQDN" | Set-Content -Path $toolspath\server-config.json		
-	
+	$config -ireplace '%Host%',"$myFQDN" | Set-Content -Path $toolspath\server-config.json
 	# Добавляем правила на межсетевом экране для RabbitMQ (виртуальной машины erlang)
 	New-NetFirewallRule -DisplayName "erl" -Direction Inbound -Program "C:\Program Files\erl9.3\bin\erl.exe" -Action allow -Protocol TCP | Out-Null
 	New-NetFirewallRule -DisplayName "erl" -Direction Inbound -Program "C:\Program Files\erl9.3\bin\erl.exe" -Action allow -Protocol UDP | Out-Null
@@ -858,7 +887,6 @@ else {
 	New-NetFirewallRule -DisplayName "epmd" -Direction Inbound -Program "C:\Program Files\erl9.3\erts-9.3\bin\epmd.exe" -Action allow -Protocol UDP | Out-Null
 	Set-NetFirewallRule -DisplayName "erl" -Profile Any | Out-Null
 	Set-NetFirewallRule -DisplayName "epmd" -Profile Any | Out-Null
-	
 	# производим установку сервера
 	# с флагом /noad если не смогли найти домен
 	if ($noad) {
@@ -884,7 +912,7 @@ else {
         $json = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($body.Value)) | ConvertFrom-Json
         $json.Host = ""
         $res = $json | ConvertTo-json
-        Invoke-WebRequest -Uri "http://localhost:8500/v1/kv/services/ADSettings?dc=dc1" -Method "PUT" -Headers @{"X-Consul-Token"="$consul_token"} -ContentType "application/json; charset=UTF-8" -Body "$res"
+        Invoke-WebRequest -Uri "http://localhost:8500/v1/kv/services/ADSettings?dc=dc1" -Method "PUT" -Headers @{"X-Consul-Token"="$consul_token"} -ContentType "application/json; charset=UTF-8" -Body "$res" | Out-Null
 		# добавляем текущего пользователя в качестве админа через базу данных
 		AI-Add-Admin ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
 	}
@@ -913,12 +941,17 @@ if ($ServiceDownList.Count -gt 0) {
 	for ($i=0; $i -lt $rusers.Count; $i++) {
 		if ($rusers[$i] -eq 'ai_user') {
 			$exists = $true
+			# даже если пользователь создан, может произойти ситуация, что ему не выданы права, поэтому выдаём их повторно
+			&"C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.8\sbin\rabbitmqctl.bat" list_user_permissions ai_user
+			&"C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.8\sbin\rabbitmqctl.bat" set_permissions -p / ai_user ".*" ".*" ".*"
+			&"C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.8\sbin\rabbitmqctl.bat" set_user_tags ai_user administrator
 		}
 	}
 	# если нет такого юзера, добавляем его и перезапускаем службы
 	if (-Not $exists) {
 		&"C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.8\sbin\rabbitmqctl.bat" add_user ai_user $passwords['rabbitMQ']
 		&"C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.8\sbin\rabbitmqctl.bat" set_permissions -p / ai_user ".*" ".*" ".*"
+		&"C:\Program Files\RabbitMQ Server\rabbitmq_server-3.7.8\sbin\rabbitmqctl.bat" set_user_tags ai_user administrator
 		$AIServices = Get-Service AI.*
 		for ($i=0; $i -lt $AIServices.Length; $i++) {
 			Start-Sleep 2
@@ -1024,6 +1057,7 @@ try {
 	Write-Host "Установка завершена." -ForegroundColor Yellow
 	Write-Host "Дальнейшие инструкции см. в файле $toolspath\readme.txt." -ForegroundColor Yellow
 	Start-Process $toolspath\readme.txt
+	date
 	Stop-Transcript
 }
 catch {
