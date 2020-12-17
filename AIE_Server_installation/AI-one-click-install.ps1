@@ -603,16 +603,7 @@ $aireports = @"
 Set-Location -Path $PSScriptRoot
 if ($toolspath -eq '') {$toolspath = "C:\AI-TOOLS"}
 if (-Not (Test-Path $toolspath\logs)) {mkdir $toolspath\logs >$null}
-if (Test-Path $toolspath\logs\install.log) {
-	# при повторной установке может возникать ситуация, что файл лога заблокирован
-	try {
-		Move-Item $toolspath\logs\install.log "$toolspath\logs\install-$((Get-Date).Ticks).log"
-		Start-Transcript -path $toolspath\logs\install.log -append
-	}
-	catch {
-		Start-Transcript -path "$toolspath\logs\install-alt-$((Get-Date).Ticks).log" -append
-	}
-}
+Start-Transcript -path "$toolspath\logs\install-$((Get-Date).Ticks).log" -append
 date
 
 # добавление администратора в базу данных
