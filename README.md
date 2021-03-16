@@ -2,6 +2,8 @@
 
 Внимание! **Это неофициальная документация для DevOps-инженеров**. Здесь вы найдёте рекомендуемую архитектуру серверной и клиентской частей, а также скрипты для автоматизации работы с PT Application Inspector и шаблоны для интеграции с различными CI-системами.
 
+**Официальную документацию** для PT Application Inspector вместе с пилотом вы можете запросить напрямую на страничке продукта: [https://www.ptsecurity.com/ru-ru/products/ai/](https://www.ptsecurity.com/ru-ru/products/ai/)
+
 Узнать подробнее о внедрении PT Application Inspector можно из [вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/) или из [статьи на Хабре](https://habr.com/ru/company/pt/blog/534458/).
 
 _Инструкция ниже, методика и рекомендации актуальны для AIE сервера v.3.6.1_
