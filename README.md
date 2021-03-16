@@ -1,4 +1,7 @@
-# DevSecOps: внедрение в продуктовый конвейер и эксплуатация анализатора кода PT Application Inspector 
+# DevSecOps: внедрение в продуктовый конвейер и эксплуатация анализатора кода PT Application Inspector
+
+Внимание! **Это неофициальная документация для DevOps-инженеров**. Здесь вы найдёте рекомендуемую архитектуру серверной и клиентской частей, а также скрипты для автоматизации работы с PT Application Inspector и шаблоны для интеграции с различными CI-системами.
+
 Узнать подробнее о внедрении PT Application Inspector можно из [вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/) или из [статьи на Хабре](https://habr.com/ru/company/pt/blog/534458/).
 
 _Инструкция ниже, методика и рекомендации актуальны для AIE сервера v.3.6.1_
