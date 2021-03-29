@@ -1,11 +1,23 @@
 # (c) DevOpsHQ, 2020
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.6-bionic
+
+# You must define some specific variables:
+
+# All Access tokens are here: https://<your-aie-server>/ui/admin/settings
 ARG AISA_TOKEN
+
+# URL of Application Inspector Enterprise Server
 ARG AISA_URI
+
+# Name of Aisa package like this: aisa.${minor}.${major}.${path}.ubuntu-x64.deb
 ARG AISA_PACKAGE
-ARG ARTIFACTORY_LOGIN
-ARG ARTIFACTORY_PASSWORD
+
+# User login to your registry
+ARG REGISTRY_LOGIN
+
+# Password for your registry login
+ARG REGISTRY_PASSWORD
 
 COPY docker_build_data/config/ /tmp/aisa_config/
 COPY docker_build_data/applications/ /usr/src/app/
@@ -63,7 +75,7 @@ RUN set -ex && \
 RUN set -ex && \
     cd /tmp/aisa_config/ && \
     chmod +x ./install_packages.sh && \
-    ./install_packages.sh ${ARTIFACTORY_LOGIN} ${ARTIFACTORY_PASSWORD} ${AISA_PACKAGE}
+    ./install_packages.sh ${REGISTRY_LOGIN} ${REGISTRY_PASSWORD} ${AISA_PACKAGE}
 
 # GENERATE en_US LOCALE
 RUN set -ex; \
