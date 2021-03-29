@@ -1,0 +1,58 @@
+stages:
+  - AI Scan
+  - Notifications
+
+# --- Pipeline Aliases ---------------------------------------
+
+.common-build: &common-build
+  image: ${PARENT_DOCKER_IMAGE}
+  tags:
+    - linux
+  artifacts:
+    expire_in: 30 day
+    paths:
+      - .report/
+
+# --- AI Aliases ---------------------------------------------------
+
+.aisa-set-settings: &aisa-set-settings >
+  aisa-set-settings
+  --projectname ${PARENT_SCANNING_PROJECT}
+  --language ${PARENT_SCANNING_PROJECT_LANGUAGE}
+
+.aisa-run-scan: &aisa-run-scan >
+  aisa --version &&
+  aisa
+  --project-settings-file ${PARENT_SCANNING_PROJECT}.aiproj
+  --scan-target ./
+  --reports "HTML,JSON"
+  --reports-folder ".report"
+
+
+# --- Additional scripts aliases ------------------------------------
+
+.push-AI-report-status-success-to-upstream: &push-AI-report-status-success-to-upstream >
+  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=success&name=AI%20Scan%20Report&description=Click%20to%20watch%20scanning%20report&target_url=$CI_JOB_URL/artifacts/file/.report/ai_report.html&pipeline_id=$PARENT_CI_PIPELINE_ID" --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
+
+# --- AI Scan Stage ------------------------------------------------
+
+AI-scanning:
+  <<: *common-build
+  stage: AI Scan
+  before_script:
+    - *aisa-set-settings
+  script:
+    - *aisa-run-scan
+    - *push-AI-report-status-success-to-upstream
+    - mv .report/*.html .report/ai_report.html
+
+
+# --- Notification Stage --------------------------------------------
+
+Send failed status to monitoring:
+  <<: *common-build
+  stage: Notifications
+  script:
+    - echo "There is a problem with AI Server!"
+    - exit 1
+  when: on_failure

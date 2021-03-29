@@ -1,0 +1,18 @@
+# Copy lines 3 - 18 to your .gitlab-ci.yml before main build steps
+
+stages:
+  - Start AI scan
+
+# --- AI Scan Stage ------------------------------------------------
+
+Start AI Information Scan:
+  stage: Start AI scan
+  trigger:
+    include:
+      - local: .AI/AI-scan.yml
+#    include: https://raw.githubusercontent.com/devopshq/dohq-ai-best-practices/master/GitLab_templates/customer-lite/.AI/AI-scan.yml
+  variables:
+    PARENT_CI_PIPELINE_ID: $CI_PIPELINE_ID # Default GitLab CI Variable
+    PARENT_SCANNING_PROJECT: $CI_PROJECT_PATH_SLUG
+    PARENT_SCANNING_PROJECT_LANGUAGE: "javascript"
+    PARENT_DOCKER_IMAGE: "<your-docker-registry>/aisa-linux:latest"
