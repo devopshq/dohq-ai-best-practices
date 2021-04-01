@@ -10,21 +10,12 @@ ARG AISA_TOKEN
 # URL of Application Inspector Enterprise Server
 ARG AISA_URI
 
-# Name of Aisa package like this: aisa.${minor}.${major}.${path}.ubuntu-x64.deb
-ARG AISA_PACKAGE
-
-# User login to your registry
-ARG REGISTRY_LOGIN
-
-# Password for your registry login
-ARG REGISTRY_PASSWORD
-
 COPY docker_build_data/config/ /tmp/aisa_config/
 COPY docker_build_data/applications/ /usr/src/app/
 
 # INSTALL EXTERNAL PACKAGES
 RUN set -ex && apt-get update && apt-get install -y --no-install-recommends \
-    wget libunwind8-dev liblttng-ust0 cmake tree jq git tar xz-utils gcc make locales openssl ssh openssh-server openssh-client && \
+    wget libunwind8-dev liblttng-ust0 cmake tree jq git tar xz-utils gcc make locales openssl ssh openssh-server openssh-client gnupg && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -73,9 +64,9 @@ RUN set -ex && \
 
 # INSTALL AISA
 RUN set -ex && \
-    cd /tmp/aisa_config/ && \
-    chmod +x ./install_packages.sh && \
-    ./install_packages.sh ${REGISTRY_LOGIN} ${REGISTRY_PASSWORD} ${AISA_PACKAGE}
+    wget -qO - https://update.ptsecurity.com/packages/PT-public.gpg | apt-key add - && \
+    echo deb https://update.ptsecurity.com/packages/deb/AI.Shell/release all non-free >> /etc/apt/sources.list && \
+    apt update && apt install aisa
 
 # GENERATE en_US LOCALE
 RUN set -ex; \

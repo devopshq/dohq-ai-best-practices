@@ -13,6 +13,6 @@ Start AI Information Scan:
 #    include: https://raw.githubusercontent.com/devopshq/dohq-ai-best-practices/master/GitLab_templates/customer-lite/.AI/AI-scan.yml
   variables:
     PARENT_CI_PIPELINE_ID: $CI_PIPELINE_ID # Default GitLab CI Variable
-    PARENT_SCANNING_PROJECT: $CI_PROJECT_PATH_SLUG
-    PARENT_SCANNING_PROJECT_LANGUAGE: "javascript"
+    PARENT_SCANNING_PROJECT: $CI_PROJECT_PATH_SLUG # PT AI project name
+    PARENT_SCANNING_PROJECT_LANGUAGE: "javascript" # one of: "java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go", "kotlin"
     PARENT_DOCKER_IMAGE: "<your-docker-registry>/aisa-linux:latest"

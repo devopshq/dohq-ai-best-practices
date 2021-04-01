@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# (c) DevOpsHQ, 2020
+# (c) Positive Technologies, 2020
 
 import sys
 import os
@@ -12,10 +12,32 @@ import platform
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--projectname", action="store", help="The name of project", required=True)
-    parser.add_argument("--language", action="store", help="Programming language to find in project", required=True)
-    parser.add_argument("--path", action="store", help="Path to project for scan", default="./", required=False)
-    parser.add_argument("--incl", action="store", help="Leave inclusions enabled True/False", required=False)
+    parser.add_argument("--projectname",
+                        action="store",
+                        help="The name of project",
+                        required=True)
+    parser.add_argument("--language",
+                        action="store",
+                        help="Programming language to find in project",
+                        required=True)
+    parser.add_argument("--path",
+                        action="store",
+                        help="Path to project for scan",
+                        default="./",
+                        required=False)
+    parser.add_argument("--exclude-formats",
+                        action="store",
+                        help="Whether to exclude non-sources files from scanning (True or False)",
+                        default="True",
+                        required=False)
+    parser.add_argument("--excluded-paths",
+                        action="store",
+                        nargs="+",
+                        help="Exclude certain files and folders from scan. "
+                             "Use single \\ with apostrophes and double \\ with quotes "
+                             "(e.g. '\\devops-tools' "
+                             '"\\\\.git\\\\")',
+                        required=False)
     arguments = parser.parse_args()
     return arguments
 
@@ -33,15 +55,14 @@ def check_args(projectname, language, languages, path_to_folder):
         print("[WARNING]: File {projectname}.aiproj exists".format(**locals()))
         print("           Try to overwrite")
         print("-" * 50)
-
     if language in map(lambda x: x.lower(), languages):
         print("[INFO]: Arguments is correct")
     else:
         sys.stderr.write("[ERROR]: Unknown language\n")
         sys.exit(1)
 
-
-def create_json(projectname, language, inclusion):
+# TODO: IsUsePublicAnalysisMethod вынести в args
+def create_json(projectname, language, exclude_formats, excluded_paths_list):
     config = r'''{
     "ProjectName": "$ProjectName",
     "ProgrammingLanguage": "$LANG",
@@ -57,8 +78,8 @@ def create_json(projectname, language, inclusion):
     "PreprocessingTimeout": 60,
     "CustomParameters": $CUSTOM,
 
-    "SkipFileFormats": $INCLUSION,
-    "SkipFilesFolders": ["\\devops-tools", "\\.git\\", "\\.gitignore", "\\.gitmodules", "\\.gitattributes", "\\$tf\\", "\\$BuildProcessTemplate\\", "\\.tfignore"],
+    "SkipFileFormats": $EXCLUDED_FILE_FORMATS,
+    "SkipFilesFolders": ["\\devops-tools", "\\.git\\", "\\.gitignore", "\\.gitmodules", "\\.gitattributes", "\\$tf\\", "\\$BuildProcessTemplate\\", "\\.tfignore"$EXCLUDED_FILES_FOLDERS],
 
     "DisabledPatterns": ["145", "146", "148", "149"],
     "DisabledTypes": [],
@@ -188,7 +209,13 @@ def create_json(projectname, language, inclusion):
     json = re.sub(r"\$ProjectName", projectname, config, 1)
     json = re.sub(r"\$LANG", language, json, 1)
 
-    if language == "csharp" or language == "vb":
+    if language == "php":
+        json = re.sub(r", \$COND", ", Php", json, 1)
+    elif language == "java":
+        json = re.sub(r", \$COND", ", Java", json, 1)
+    elif language == "javascript":
+        json = re.sub(r", \$COND", ", JavaScript", json, 1)
+    elif language == "csharp" or language == "vb":
         json = re.sub(r", \$COND", ", CSharp", json, 1)
     else:
         json = re.sub(r", \$COND", "", json, 1)
@@ -198,17 +225,37 @@ def create_json(projectname, language, inclusion):
     else:
         json = re.sub(r"\$CUSTOM", "null", json, 1)
 
-    inclusions_list = '["*.7z", "*.bmp", "*.dib", "*.dll", "*.doc", "*.docx", "*.exe", "*.gif", "*.ico", "*.jfif", ' \
-                      '"*.jpe", "*.jpe6", "*.jpeg", "*.jpg", "*.odt", "*.pdb", "*.pdf", "*.png", "*.rar", "*.swf", ' \
-                      '"*.tif", "*.tiff", "*.zip"]'
+
+    excluded_formats_list = '["*.7z", "*.bmp", "*.dib", "*.dll", "*.doc", "*.docx", "*.exe", "*.gif", "*.ico", ' \
+                            '"*.jfif", "*.jpe", "*.jpe6", "*.jpeg", "*.jpg", "*.odt", "*.pdb", "*.pdf", "*.png", ' \
+                            '"*.rar", "*.swf", "*.tif", "*.tiff", "*.zip"]'
+
     try:
-        print("[INFO]: Inclusion:  {inclusion[0]}".format(**locals()))
-        if inclusion[0] in ('False', 'false'):
-            json = re.sub(r"\$INCLUSION", "null", json, 1)
-        elif inclusion[0] in ('True', 'true'):
-            json = re.sub(r"\$INCLUSION", inclusions_list, json, 1)
+        print("[INFO]: Exclude non-source files from scanning:  {exclude_formats}".format(**locals()))
+        if exclude_formats in ('FALSE', 'False', 'false'):
+            json = re.sub(r"\$EXCLUDED_FILE_FORMATS", "null", json, 1)
+        elif exclude_formats in ('TRUE', 'True', 'true'):
+            json = re.sub(r"\$EXCLUDED_FILE_FORMATS", excluded_formats_list, json, 1)
+        else:
+            raise ValueError()
     except (ValueError, Exception):
-        json = re.sub(r"\$INCLUSION", inclusions_list, json, 1)
+        print('[WARNING]: You have specified an invalid value. Used "True" as the default.')
+        json = re.sub(r"\$EXCLUDED_FILE_FORMATS", excluded_formats_list, json, 1)
+
+    try:
+        print("[INFO]: Excluded files and folders list:  {excluded_paths_list}".format(**locals()))
+        if excluded_paths_list is not None:
+            excluded_paths_string = ''
+            for excluded_item in excluded_paths_list:
+                # Take raw value and remove apostrophes
+                prepared_excluded_item = repr(excluded_item).replace("'", "")
+                excluded_paths_string = excluded_paths_string + r', "{prepared_excluded_item}"'.format(**locals())
+            json = json.replace("$EXCLUDED_FILES_FOLDERS", excluded_paths_string, 1)
+        else:
+            json = json.replace("$EXCLUDED_FILES_FOLDERS", '', 1)
+    except (ValueError, Exception):
+        print('[WARNING]: Something went wrong! The default values are used.')
+        json = json.replace("$EXCLUDED_FILES_FOLDERS", '', 1)
 
     return json
 
@@ -224,16 +271,16 @@ def print_info(projectname, language, path_to_file):
     print("-" * 50)
 
 
-def main(prj, lang, path, incl):
+def main(prj, lang, path, exclude_formats, excluded_paths_list):
     # ---------- Variables ----------
-
-    langs = ["java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go"]
+    lang = lang.lower()
+    langs = ["java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go", "kotlin"]
     os_type = platform.system()
 
     # ------------- Run -------------
 
     check_args(prj, lang, langs, path)
-    json_file = create_json(prj, lang, incl)
+    json_file = create_json(prj, lang, exclude_formats, excluded_paths_list)
     print_info(prj, lang, path)
 
     proj = open("{prj}.aiproj".format(**locals()), "w")
@@ -249,5 +296,6 @@ if __name__ == '__main__':
         prj=args.projectname,  # Project name
         lang=args.language,  # Language
         path=args.path,  # Path to folder
-        incl=args.incl  # inclusions on/off
+        exclude_formats=args.exclude_formats,  # Exclusion non-sources files from scanning (on/off)
+        excluded_paths_list=args.excluded_paths  # Exclusion paths from scanning
     )
