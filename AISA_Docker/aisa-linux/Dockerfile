@@ -1,4 +1,4 @@
-# (c) DevOpsHQ, 2020
+# (c) DevOpsHQ, 2021
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.6-bionic
 
@@ -56,11 +56,10 @@ RUN set -ex && \
     ln -s /usr/src/app/aisa-set-settings.py /usr/bin/aisa-set-settings
 
 # INSTALL CERT
-#RUN set -ex && \
-#    cd /tmp/aisa_config/ ;\
-#    cp <you-cert>>.crt /usr/local/share/ca-certificates/<you-cert>.crt ;\
-#    cp <you-cert>.crt /usr/local/share/ca-certificates/<you-cert>.pem.crt ;\
-#    update-ca-certificates
+RUN set -ex && \
+    cd /tmp/aisa_config/ ;\
+    cp *.crt /usr/local/share/ca-certificates/ ;\
+    update-ca-certificates
 
 # INSTALL AISA
 RUN set -ex && \
