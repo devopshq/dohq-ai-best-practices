@@ -4,7 +4,7 @@
 
 **Официальную документацию** для PT Application Inspector вместе с пилотом вы можете запросить напрямую на страничке продукта: [https://www.ptsecurity.com/ru-ru/products/ai/](https://www.ptsecurity.com/ru-ru/products/ai/)
 
-Узнать подробнее о внедрении PT Application Inspector можно из [вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/) или из [статьи на Хабре](https://habr.com/ru/company/pt/blog/534458/).
+Узнать про внедрение PT Application Inspector можно из [первого вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/) или из [статьи на Хабре](https://habr.com/ru/company/pt/blog/534458/), а про работу AI в сборочном конвейере и как найденные уязвимости блокируют выпуск релиза — из [второго вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-pt-application-inspector-v-razrabotke-po-blokirovka-reliza/).
 
 _Инструкция ниже, методика и рекомендации актуальны для AIE сервера v.3.6.1_
 
@@ -75,7 +75,7 @@ PT Application Inspector выделяется среди конкурентов 
 - DevOps.Artifactory — хранилище артефактов
 - Docker.Registry — хранилище докер-образов
 - Docker.Linux.AISA — артефакт сборки клиента AISA (рабочий докер-образ с клиентом)
-- AI.Shell.Agent — клиент AISA, запущенный внутри докер-контейнера, работающий с API AI-сервера
+- AI.Shell Agent — клиент AISA, запущенный внутри докер-контейнера, работающий с API AI-сервера
 - BuildAgent.Console — системная консоль сборочного агента
 - workingDirectory — рабочий каталог на сборочном сервере с исходным кодом, который будет сканироваться
 
@@ -102,7 +102,7 @@ PT Application Inspector выделяется среди конкурентов 
 - Возможно значительное ожидание сборок в очереди, пока сканирование идёт на одном AI-сервере.
 - Пока неизвестны требования по железу для масштабирования и обеспечения сканирований для десятков и сотен тысяч сборок в день.
 
-Как мы решали некоторые проблемы с выбранной архитектурой, смотрите [демо на вебинаре](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/).
+Как мы решили некоторые проблемы с выбранной архитектурой, смотрите [демо на вебинаре](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/).
 
 ## Сборочная CI-инфраструктура
 
