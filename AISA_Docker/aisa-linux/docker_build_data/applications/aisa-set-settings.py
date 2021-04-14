@@ -71,7 +71,7 @@ def create_json(projectname, language, exclude_formats, excluded_paths_list):
     "Site": "http://localhost",
     "IsDownloadDependencies": true,
 
-    "IsUsePublicAnalysisMethod": false,
+    "IsUsePublicAnalysisMethod": true,
     "IsUseEntryAnalysisPoint": true,
 
     "ScanUnitTimeout": 360,
