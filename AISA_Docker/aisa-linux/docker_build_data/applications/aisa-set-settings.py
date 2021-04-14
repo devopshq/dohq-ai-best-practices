@@ -62,7 +62,6 @@ def check_args(projectname, language, languages, path_to_folder):
         sys.exit(1)
 
 
-# TODO: IsUsePublicAnalysisMethod вынести в args
 def create_json(projectname, language, exclude_formats, excluded_paths_list):
     config = r'''{
     "ProjectName": "$ProjectName",
