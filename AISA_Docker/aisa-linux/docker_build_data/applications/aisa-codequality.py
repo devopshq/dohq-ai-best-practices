@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# (c) Positive Technologies, 2021
+# (c) DevOpsHQ, 2021
 
 import os
 import requests

@@ -55,10 +55,10 @@ AI Information mode scan:
 AI Lock mode scan:
   <<: *lock-mode
   only:
-    - develop
+    - master
 
 # Starting a child pipeline in a specific branch
 AI Strictest mode scan:
   <<: *strictest-mode
   only:
-    - master
+    - develop
