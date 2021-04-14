@@ -1,0 +1,64 @@
+# This template is used for components scanning
+
+stages:
+  - AI scan start
+
+
+# --- Pipeline Aliases ---------------------------------------
+
+# Common variables to run AI Scan
+.common-variables: &common-variables
+  variables:
+    PARENT_CI_PIPELINE_ID: ${CI_PIPELINE_ID}
+    PARENT_SCANNING_PROJECT: ${SCANNING_PROJECT}
+    PARENT_SCANNING_PROJECT_LANGUAGE: ${SCANNING_PROJECT_LANGUAGE}
+    PARENT_CODEQUALITY_SETTINGS: ${CODEQUALITY_SETTINGS}
+
+# Anchor for selecting the launch mode
+.information-mode: &information-mode
+  <<: *common-variables
+  stage: AI scan start
+  trigger:
+    include:
+      - local: .AI/AI-Information-Mode.yml
+
+# Anchor for selecting the launch mode
+.lock-mode: &lock-mode
+  <<: *common-variables
+  stage: AI scan start
+  trigger:
+    include:
+      - local: .AI/AI-Lock-Mode.yml
+
+# Anchor for selecting the launch mode
+.strictest-mode: &strictest-mode
+  <<: *common-variables
+  stage: AI scan start
+  trigger:
+    include:
+      - local: .AI/AI-Strictest-Mode.yml
+
+
+# --- Start pipelines -------------------------------------------
+
+# Starting a child pipeline in a specific branch
+AI Information mode scan:
+  <<: *information-mode
+  except:
+    - release
+    - develop
+    - master
+  only:
+    - branches
+
+# Starting a child pipeline in a specific branch
+AI Lock mode scan:
+  <<: *lock-mode
+  only:
+    - master
+
+# Starting a child pipeline in a specific branch
+AI Strictest mode scan:
+  <<: *strictest-mode
+  only:
+    - develop

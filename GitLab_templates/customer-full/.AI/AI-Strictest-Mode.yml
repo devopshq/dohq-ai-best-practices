@@ -1,0 +1,194 @@
+# This template is used for components scanning in "Strictest Mode"
+
+stages:
+  - AI Scan
+  - Security Gates
+  - Build verification
+  - Notifications
+
+
+# --- Variables ----------------------------------------------
+
+# Common variables to run AI Scan
+variables:
+  SCANNING_PROJECT: ${PARENT_SCANNING_PROJECT}
+  SCANNING_PROJECT_LANGUAGE: ${PARENT_SCANNING_PROJECT_LANGUAGE}
+  CODEQUALITY_SETTINGS: ${PARENT_CODEQUALITY_SETTINGS}
+
+
+# --- Pipeline Aliases ---------------------------------------
+
+# Common docker image and GitLab Runners tags
+.common-build: &common-build
+  image: <your-docker-registry>/aisa-linux:latest
+  tags:
+    - linux
+    - docker
+
+# Common structure to keep artifacts in GitLab CI Jobs
+.common-artifacts: &common-artifacts
+  artifacts:
+    expire_in: 14 day
+    paths:
+      - .report/
+
+# Anchor for run condition, designed to simplify the pipeline
+.on-success: &on-success
+  when: on_success
+
+# Anchor for run condition, designed to simplify the pipeline
+.on-failure: &on-failure
+  when: on_failure
+
+
+# --- AI Aliases ----------------------------------------------------
+
+# Common steps to generate a settings file
+.aisa-set-settings: &aisa-set-settings >
+  aisa-set-settings
+  --projectname ${SCANNING_PROJECT}
+  --language ${SCANNING_PROJECT_LANGUAGE}
+
+# Common steps to start a scan
+.aisa-run-scan: &aisa-run-scan >
+  aisa --version &&
+  aisa
+  --project-settings-file ${SCANNING_PROJECT}.aiproj
+  --scan-target ./
+  --reports "HTML,JSON"
+  --reports-folder ".report"
+
+# Common steps to start procedure for processing scan results
+.aisa-codequality: &aisa-codequality >
+  aisa-codequality
+  -i .report
+  -o codequality.json
+  -t ${AI_GITLAB_BOT_TOKEN}
+  -b True
+  -s ./aisa-codequality.settings.yml | tee temp_result
+
+
+# --- Additional scripts aliases ------------------------------------
+
+# Push "Running" status to parent pipeline (for easier perception in MergeRequest)
+.push-AI-report-status-run-to-upstream: &push-AI-report-status-run-to-upstream >
+  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=running&name=AI%20Scan%20Report&description=Waiting%20for%20scan%20report%20from%20child%20pipeline&pipeline_id=$PARENT_CI_PIPELINE_ID"
+  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
+
+# Push "Success" status with report hyperlink to parent pipeline
+.push-AI-report-status-success-to-upstream: &push-AI-report-status-success-to-upstream >
+  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=success&name=AI%20Scan%20Report&description=Click%20to%20watch%20scanning%20report&target_url=$CI_JOB_URL/artifacts/file/.report/ai_report.html&pipeline_id=$PARENT_CI_PIPELINE_ID"
+  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
+
+# Push "Security Gates: Passed / Failed" status to parent pipeline
+.push-Security-Gates-status-to-upstream: &push-Security-Gates-status-to-upstream >
+  if cat temp_result | grep -q "Check Security Gates: PASSED"; then
+  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=success&name=Code%20Quality:%20PASSED&description=Check%20Security%20Gates:%20PASSED&pipeline_id=$PARENT_CI_PIPELINE_ID"
+  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}";
+  elif cat temp_result | grep -q "Check Security Gates: FAILED"; then
+  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=failed&name=Code%20Quality:%20FAILED&description=Check%20Security%20Gates:%20FAILED&pipeline_id=$PARENT_CI_PIPELINE_ID"
+  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"; fi && rm -rf temp_result
+
+# Write the scan status to the variable
+.get-Security-Gates-status: &get-Security-Gates-status >
+  if cat temp_result | grep -q "Check Security Gates: PASSED"; then echo 'SECURITY_GATES_STATUS="PASSED"' > .env;
+  elif cat temp_result | grep -q "Check Security Gates: FAILED"; then echo 'SECURITY_GATES_STATUS="FAILED"' > .env; fi
+
+# Starting the manual job in the parent pipeline if the Security Gates status is Passed
+# Also repeat the launch requests until the manual job is available in the parent pipeline (for builds with long build times)
+.run-manual-job-from-upstream: &run-manual-job-from-upstream >
+  PARENT_JOB_ID=null && while [[ "$PARENT_JOB_ID" == null ]];
+  do PARENT_JOB_ID=$(curl --location --request GET "$CI_API_V4_URL/projects/$CI_PROJECT_ID/pipelines/$PARENT_CI_PIPELINE_ID/jobs?scope[]=manual"
+  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}" > .json && cat .json | jq ".[0].id" && rm -rf .json);
+  echo 'Sleep 1m for waiting upstream pipeline, then retry...'; sleep 1; done;
+  curl --location -g --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/jobs/$PARENT_JOB_ID/play"
+  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
+
+
+# --- AI Scan Stage ------------------------------------------------
+
+# Code scan with Aisa and report generation
+AI-scanning:
+  <<: *common-build
+  <<: *common-artifacts
+  stage: AI Scan
+  before_script:
+    - *push-AI-report-status-run-to-upstream
+    - *aisa-set-settings
+  script:
+    - *aisa-run-scan
+    - *push-AI-report-status-success-to-upstream
+    - mv .report/*.html .report/ai_report.html
+
+
+# --- Security Gates Stage ------------------------------------------
+
+# This job processes the results of the AI-scanning and makes a verdict on them. See the documentation for more info
+Check Security Gate:
+  <<: *common-build
+  <<: *on-success
+  stage: Security Gates
+  before_script:
+    - echo "${CODEQUALITY_SETTINGS}" > ./aisa-codequality.settings.yml
+  script:
+    - *aisa-codequality
+    - *get-Security-Gates-status
+    - *push-Security-Gates-status-to-upstream
+  needs:
+    - job: AI-scanning
+      artifacts: true
+  artifacts:
+    expire_in: 14 day
+    paths:
+      - .report/
+    reports:
+      dotenv: .env
+
+# Fake job for demonstration
+Send failed status to monitoring:
+  <<: *common-build
+  <<: *on-failure
+  stage: Security Gates
+  script:
+    - exit 0
+
+
+# --- Approve Stage -------------------------------------------------
+
+# Completes successfully if the build is passed, if not, it fails the downstream pipeline
+Approve build:
+  <<: *common-build
+  stage: Build verification
+  script:
+    - if [[ $SECURITY_GATES_STATUS == \"PASSED\" ]]; then exit 0; else exit 1; fi
+  dependencies:
+    - Check Security Gate
+
+# Starts a manual job in the parent pipeline
+Run upload:
+  <<: *common-build
+  stage: Build verification
+  script:
+    - if [[ "$SECURITY_GATES_STATUS" == \"PASSED\" ]] ; then echo $SECURITY_GATES_STATUS; else echo $SECURITY_GATES_STATUS; exit 1; fi
+    - *run-manual-job-from-upstream
+  dependencies:
+    - Check Security Gate
+
+
+# --- Notification Stage --------------------------------------------
+
+# Fake job for demonstration
+Notify by email and chats (Success):
+  <<: *common-build
+  <<: *on-success
+  stage: Notifications
+  script:
+    - exit 0
+
+# Fake job for demonstration
+Notify by email and chats (Failure):
+  <<: *common-build
+  <<: *on-failure
+  stage: Notifications
+  script:
+    - exit 0

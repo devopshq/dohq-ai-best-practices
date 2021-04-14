@@ -66,12 +66,12 @@ def create_json(projectname, language, exclude_formats, excluded_paths_list):
     config = r'''{
     "ProjectName": "$ProjectName",
     "ProgrammingLanguage": "$LANG",
-    "ScanAppType": "Configuration, Fingerprint, PmTaint, DependencyCheck, $COND",
+    "ScanAppType": "Configuration, PmTaint, $COND",
     "ThreadCount": 2,
     "Site": "http://localhost",
     "IsDownloadDependencies": true,
 
-    "IsUsePublicAnalysisMethod": true,
+    "IsUsePublicAnalysisMethod": false,
     "IsUseEntryAnalysisPoint": true,
 
     "ScanUnitTimeout": 360,
@@ -274,7 +274,7 @@ def print_info(projectname, language, path_to_file):
 def main(prj, lang, path, exclude_formats, excluded_paths_list):
     # ---------- Variables ----------
     lang = lang.lower()
-    langs = ["java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go", "kotlin"]
+    langs = ["java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go"]
     os_type = platform.system()
 
     # ------------- Run -------------

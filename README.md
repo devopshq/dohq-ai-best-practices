@@ -343,10 +343,39 @@ PT Application Inspector выделяется среди конкурентов 
 
 ### aisa-codequality
 
+Для объявления Security Gates используется инструмент aisa-codequality, который поставляется совместно с docker образом.
+
+Целью данного инструмента является удобное информацирование команд о найденных уязвимостях средствами Application Inspector и блокировка MergeRequest'ов в случае необходимости.
+
 | Параметр запуска        | Пример значения | Обязательный параметр? |
 |-------------------------|-----------------|------------------------|
 | `-i` / `--input_folder` | `.report`       | Да                     |
 | `-o` / `--output_file`  | `.report.json`  | Да                     |     
+
+| Параметр запуска                      | Пример значения        	                                           | Описание                                                                                                                                                     | Параметр по умолчанию                |
+|---------------------------------------|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------|
+| `-i`      / ` --input_folder`         | `.report`                                                            | Имя директории, в которой находятся отчеты от Application Inspector'a	                                                                                      | .report                              |
+| `-o`      / `--output_file`           | `codequality.json`                                                   | Имя json файла, получаемого по завершению работы инструмента. Данный файл подходит под формат Code Climat (Требование GitLab)	                              | codequality.json                     |
+| `-t`      / `--token`                 | `Ex1mPleToKen-3dTyRW`                                                | Токен от учетной записи, от имени которой создается новая дискуссия в GitLab Merge Request (рекомендуется использовать учетную запись бота @aie_gitlab_bot)  |                                      |
+| `-s`      / `--settings_file`         | `aisa-codequality.settings.yml`                                      | Имя файла с настройками PT AI Security Gates (рекомендуется генерировать данный файл в ходе выполнения CI)	                                                  |                                      |
+| `-sha`    / `--commit_sha`            | `7b6cc46368f6f9e990108fbf8ddf2c2fb29b94bf`                           | SHA коммита, по которому будет осуществлен поиск всех MergeRequest'ов	                                                                                      |                                      |
+| `-gpid`   / `--gitlab_project_id`     | `4883`                                                               | ID Проекта на GitLab	                                                                                                                                      |                                      |
+| `-gpurl`  / `--gitlab_project_url`    | `https://gitlab.ptsecurity.com/dragulin/tests_application_inspector` | Прямая ссылка на проект на GitLab	                                                                                                                          |                                      |
+| `-gaurl`  / `--gitlab_api_url`        | `https://gitlab.ptsecurity.com/api/v4`                               | Прямая ссылка на API GitLab'a	                                                                                                                              | https://gitlab.ptsecurity.com/api/v4 |
+| `-tcbid`  / `--teamcity_build_id`     | `%teamcity.build.id%`                                                | ID сборочной конфигурации на TeamCity	                                                                                                                      |                                      |
+| `-tcbtid` / `--teamcity_buildType_id` | `%system.teamcity.buildType.id%`                                     | Расширеннное имя сборочной конфигурации на TeamCity	                                                                                                      |                                      |
+| `-tcurl`  / `--teamcity_server_url`   | `https://teamcity.ptsecurity.com`                                    | Прямая ссылка на сервер TeamCity	                                                                                                                          | https://teamcity.ptsecurity.com      |
+| `-b`      / `--block_mr`              | `True`                                                               | Переименовывать ли MergeRequest в Draft отключая при этом кнопку Merge? Если True, то MR будет переименован. По умолчанию значение False.	                  | False                                |
+
+На текущем этапе под "блокировкой" подразумевается:
+
+- Информационной сообщение `Merge Request has been locked by current Security Gates`.
+- Добавление к заголовку MergeRequest'a слова "Draft:" что отключает кнопку "Merge" в MergeRequest'e до его обратного переименования (по умолчанию данная возможность отключена во избежание возникновения проблем с командами, в которых настроена автоматизация на заголовки MergeRequest'ов).
+
+> По причине того, что сканирование производится по коммиту, при включенной блокировке могут быть заблокированы сразу нескольких Merge Request'ов.
+
+> Для большей информативности рекомендуется обрабатывать и отдава утилите aisa-codequality на обработку и и HTML и JSON отчеты. В случае, если HTML отчет не будет получен, работа утилиты не остановится, но в Merge Request информация о HTML отчете не попадет.
+
 
 
 ## Инструкция по использованию метараннеров в TeamCity
@@ -401,6 +430,21 @@ PT Application Inspector выделяется среди конкурентов 
 │       │       └── install-web.ps1              # PowerShell скрипт для загрузки и установки бинарей с интернета
 │       └── Dockerfile                           # Пример конфигурации для Docker образа под Windows
 ├── GitLab_templates                             # Директория с шаблонами для GitLab-CI
+│   ├── customer-lite                            # Директория с примерами информационного жизнненого цикла AI в CI
+│   │   ├── .AI                                  # Директория с шаблонами Pipeline'ов
+│   │   │   └── AI-scan.yml                      # Пример сканирования в режиме Information Mode
+│   │   └── .gitlab-ci.yml                       # Пример типового Pipeline'a
+│   ├── customer-full                            # Директория с примерами полного жизнненого цикла AI в CI
+│   │   ├── .AI                                  # Директория с шаблонами Pipeline'ов
+│   │   │   ├── .gitlab-ci.ai.png                # Схема всех шаблонов, подключаемых с помощью .gitlab-ci.ai.yml
+│   │   │   ├── .gitlab-ci.ai.yml                # Пример агрегирующего шаблона, импортируемого в .gitlab-ci.yml
+│   │   │   ├── AI-Information-Mode.png          # Схема примера AI-Information-Mode.yml в формете png
+│   │   │   ├── AI-Information-Mode.yml          # Пример сканирования в режиме Information Mode
+│   │   │   ├── AI-Lock-Mode.png                 # Схема примера AI-Lock-Mode.yml в формете png
+│   │   │   ├── AI-Lock-Mode.yml                 # Пример сканирования в режиме Lock Mode
+│   │   │   ├── AI-Strictest-Mode.png            # Схема примера AI-Strictest-Mode.yml в формете png
+│   │   │   └── AI-Strictest-Mode.yml            # Пример сканирования в режиме Strictest Mode
+│   │   └── .gitlab-ci.yml                       # Пример типового Pipeline'a
 │   ├── default_project_files                    # Директория с примерами файлов настроек проекта
 │   │   ├── default_policy.json                  # 1 пример файла с настройками проекта
 │   │   ├── default_project.aiproj               # 2 пример файла с настройками проекта

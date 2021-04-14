@@ -15,7 +15,7 @@ COPY docker_build_data/applications/ /usr/src/app/
 
 # INSTALL EXTERNAL PACKAGES
 RUN set -ex && apt-get update && apt-get install -y --no-install-recommends \
-    wget libunwind8-dev liblttng-ust0 cmake tree jq git tar xz-utils gcc make locales openssl ssh openssh-server openssh-client gnupg && \
+    wget libunwind8-dev liblttng-ust0 cmake tree jq git tar xz-utils gcc make locales openssl ssh openssh-server openssh-client && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -40,10 +40,10 @@ RUN ln -s python3.7 /usr/local/bin/python && \
     python --version
 
 RUN python -m pip install --upgrade pip && \
-    python -m pip install --upgrade virtualenv pip-review && \
+    python -m pip install --upgrade virtualenv pip-review texttable psycopg2-binary psycopg2 && \
     pip-review --auto
 
-RUN pip3 install pyyaml requests crosspm
+RUN pip3 install pyyaml requests crosspm texttable psycopg2-binary psycopg2
 
 # INSTALL AISA HELP TOOLS
 RUN set -ex && \

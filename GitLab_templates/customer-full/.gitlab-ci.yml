@@ -1,0 +1,81 @@
+stages:
+  - AI scan start
+  - Tests
+  - Build
+  - Upload
+
+
+# --- Workflow -----------------------------------------------
+
+# The workflow field allows you to disable the duplicate pipeline launch if Merge Request exists.
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - when: always
+
+
+# --- Variables ----------------------------------------------
+
+
+# Common variables to run AI Scan
+variables:
+  DOCKER_IMAGE: <your-docker-registry>/aisa-linux:latest
+  SCANNING_PROJECT: ${CI_PROJECT_PATH_SLUG}
+  SCANNING_PROJECT_LANGUAGE: javascript
+  CODEQUALITY_SETTINGS: |
+    threats mapping:
+        info: Potential
+        minor: Low
+        major: Medium
+        critical: High
+        blocker: []
+    security gates:
+        info: 0
+        minor: 1
+        major: 4
+        critical: 0
+        blocker: 0
+
+
+# --- AI Scan Stage -------------------------------------------------
+
+# Running a template from a third-party .yml file to save space in the current one
+include:
+  - local: .AI/.gitlab-ci.ai.yml
+
+
+# --- Tests Stage ---------------------------------------------------
+
+# Fake job for demonstration
+Tests:
+  image: ${DOCKER_IMAGE}
+  stage: Tests
+  script:
+    - exit 0
+
+
+# --- Build Stage ---------------------------------------------------
+
+# Fake job for demonstration
+Build:
+  image: ${DOCKER_IMAGE}
+  stage: Build
+  script:
+    - exit 0
+
+
+# --- Upload Stage --------------------------------------------------
+
+# Fake job in two states for demonstration
+Upload to registry:
+  image: ${DOCKER_IMAGE}
+  stage: Upload
+  script:
+    - exit 0
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      when: manual
+    - when: on_success
