@@ -61,17 +61,17 @@ def check_args(projectname, language, languages, path_to_folder):
         sys.stderr.write("[ERROR]: Unknown language\n")
         sys.exit(1)
 
-# TODO: IsUsePublicAnalysisMethod вынести в args
+
 def create_json(projectname, language, exclude_formats, excluded_paths_list):
     config = r'''{
     "ProjectName": "$ProjectName",
     "ProgrammingLanguage": "$LANG",
-    "ScanAppType": "Configuration, PmTaint, $COND",
+    "ScanAppType": "Configuration, Fingerprint, PmTaint, DependencyCheck, $COND",
     "ThreadCount": 2,
     "Site": "http://localhost",
     "IsDownloadDependencies": true,
 
-    "IsUsePublicAnalysisMethod": false,
+    "IsUsePublicAnalysisMethod": true,
     "IsUseEntryAnalysisPoint": true,
 
     "ScanUnitTimeout": 360,
@@ -225,7 +225,6 @@ def create_json(projectname, language, exclude_formats, excluded_paths_list):
     else:
         json = re.sub(r"\$CUSTOM", "null", json, 1)
 
-
     excluded_formats_list = '["*.7z", "*.bmp", "*.dib", "*.dll", "*.doc", "*.docx", "*.exe", "*.gif", "*.ico", ' \
                             '"*.jfif", "*.jpe", "*.jpe6", "*.jpeg", "*.jpg", "*.odt", "*.pdb", "*.pdf", "*.png", ' \
                             '"*.rar", "*.swf", "*.tif", "*.tiff", "*.zip"]'
@@ -274,7 +273,8 @@ def print_info(projectname, language, path_to_file):
 def main(prj, lang, path, exclude_formats, excluded_paths_list):
     # ---------- Variables ----------
     lang = lang.lower()
-    langs = ["java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go"]
+    langs = ["java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go",
+             "kotlin"]
     os_type = platform.system()
 
     # ------------- Run -------------

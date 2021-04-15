@@ -15,7 +15,7 @@ COPY docker_build_data/applications/ /usr/src/app/
 
 # INSTALL EXTERNAL PACKAGES
 RUN set -ex && apt-get update && apt-get install -y --no-install-recommends \
-    wget libunwind8-dev liblttng-ust0 cmake tree jq git tar xz-utils gcc make locales openssl ssh openssh-server openssh-client && \
+    wget libunwind8-dev liblttng-ust0 cmake tree jq git tar xz-utils gcc make locales openssl ssh openssh-server openssh-client gnupg && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
