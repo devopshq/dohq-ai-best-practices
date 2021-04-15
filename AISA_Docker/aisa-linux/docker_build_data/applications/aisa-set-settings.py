@@ -66,7 +66,7 @@ def create_json(projectname, language, exclude_formats, excluded_paths_list):
     config = r'''{
     "ProjectName": "$ProjectName",
     "ProgrammingLanguage": "$LANG",
-    "ScanAppType": "Configuration, PmTaint, $COND",
+    "ScanAppType": "Configuration, Fingerprint, PmTaint, DependencyCheck, $COND",
     "ThreadCount": 2,
     "Site": "http://localhost",
     "IsDownloadDependencies": true,
