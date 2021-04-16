@@ -2,6 +2,8 @@
 
 Внимание! **Это неофициальная документация для DevOps-инженеров**. Здесь вы найдёте рекомендуемую архитектуру серверной и клиентской частей, а также скрипты для автоматизации работы с PT Application Inspector и шаблоны для интеграции с различными CI-системами.
 
+**Пожалуйста, при любом использовании материалов из данного документа, оставляйте ссылку на проект:** https://github.com/devopshq/dohq-ai-best-practices Материалы периодически обновляются, и это позволит избежать использования неактуальной версии.
+
 **Официальную документацию** для PT Application Inspector вместе с пилотом вы можете запросить напрямую на страничке продукта: [https://www.ptsecurity.com/ru-ru/products/ai/](https://www.ptsecurity.com/ru-ru/products/ai/)
 
 Узнать про внедрение PT Application Inspector можно из [первого вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/) или из [статьи на Хабре](https://habr.com/ru/company/pt/blog/534458/), а про работу AI в сборочном конвейере и как найденные уязвимости блокируют выпуск релиза — из [второго вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-pt-application-inspector-v-razrabotke-po-blokirovka-reliza/).
