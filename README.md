@@ -10,6 +10,11 @@
 
 _Инструкция ниже, методика и рекомендации актуальны для AI сервера []v.3.6.1](./.media/ptaiee_adminguide_ru.pdf)_
 
+![](./.media/00_DevSecOps_Process.png)
+
+Читайте статью по теме: "[DevSecOps. PT Application Inspector в разработке ПО: блокировка релиза](https://habr.com/ru/company/pt/blog/557142/)"
+
+
 # Содержание
 
 1. [Для чего нужен PT Application Inspector](#для-чего-нужен-pt-application-inspector)
