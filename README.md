@@ -8,7 +8,7 @@
 
 Узнать про внедрение PT Application Inspector можно из [первого вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-vnedrenie-v-produktovyj-konvejer-i-ehkspluataciya-pt-application-inspector/) или из [статьи на Хабре](https://habr.com/ru/company/pt/blog/534458/), а про работу AI в сборочном конвейере и как найденные уязвимости блокируют выпуск релиза — из [второго вебинара](https://www.ptsecurity.com/ru-ru/research/webinar/devsecops-pt-application-inspector-v-razrabotke-po-blokirovka-reliza/).
 
-_Инструкция ниже, методика и рекомендации актуальны для AI сервера []v.3.6.1](./.media/ptaiee_adminguide_ru.pdf)_
+_Инструкция ниже, методика и рекомендации актуальны для AI сервера [v.3.6.1](./.media/ptaiee_adminguide_ru.pdf).
 
 ![](./.media/00_DevSecOps_Process.png)
 
