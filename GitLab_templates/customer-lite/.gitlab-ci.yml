@@ -16,3 +16,4 @@ Start AI Information Scan:
     PARENT_SCANNING_PROJECT: $CI_PROJECT_PATH_SLUG # AI project name
     PARENT_SCANNING_PROJECT_LANGUAGE: "javascript" # one of: "java", "php", "csharp", "vb", "objectivec", "cplusplus", "sql", "swift", "python", "javascript", "go", "kotlin"
     PARENT_DOCKER_IMAGE: "<your-docker-registry>/aisa-linux:latest"
+    # ${AI_GITLAB_BOT_TOKEN} - a user token that has read rights to the repository content. This variable is set at the project settings/ci_cd/Variables or project group 
