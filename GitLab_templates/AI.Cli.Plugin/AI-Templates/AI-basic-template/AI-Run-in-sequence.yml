@@ -1,0 +1,211 @@
+# This template is used for sequence scanning with PT Application Inspector
+
+# Anchor for static security analysis
+.ai-static-scan:
+    image: ${REGISTRY_ADDRESS}/tools/ai-plugin:latest # url of docker registry with AI plugin container
+    tags:
+      - docker
+      - linux
+      - build-low # change to your tag
+    variables:
+        ST_PROJECT_NAME: ${AI_PROJECT_NAME}
+        ST_PROJECT_LANGUAGE: ${AI_PROJECT_LANGUAGE}
+        ST_CODEQUALITY_SETTINGS: ${AI_CODEQUALITY_SETTINGS}
+        ST_USE_SERVER_SETTINGS: ${AI_USE_SERVER_SETTINGS}
+        ST_PROJECT_SETTINGS: ${AI_PROJECT_SETTINGS}
+        ST_CUSTOM_PLUGIN_PARAMS: ${AI_CUSTOM_PLUGIN_PARAMS}
+        ST_REPORT_JSON: | # Reports to be generated after scanning is finished
+            {
+            "report" : [
+            {
+                "fileName" : "ai_full_report.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования"
+            },{
+                "fileName" : "tier1.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования",
+                "filters": {
+                    "issueLevels": ["MEDIUM", "HIGH"],
+                    "scanMode": "FROMENTRYPOINT",
+                    "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"]
+                    }
+            },{
+                "fileName" : "tier2.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования",
+                "filters": {
+                    "issueLevels": ["MEDIUM", "HIGH"],
+                    "scanMode": "FROMPUBLICPROTECTED",
+                    "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"]
+                    }
+            },{
+                "fileName" : "tier3.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования",
+                "filters": {
+                    "issueLevels": ["LOW", "POTENTIAL"],
+                    "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"],
+                    "sourceType": "STATIC"
+                    }
+            },{
+                "fileName" : "new.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования",
+                "filters": {
+                    "actualStatus": "ISNEW",
+                    "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"]
+                    }
+            },{
+                "fileName" : "vulnerable components.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования",
+                "filters": {
+                    "issueLevels": ["MEDIUM", "HIGH"],
+                    "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"],
+                    "scanMode": "FROMOTHER",
+                    "sourceType": "STATIC"
+                    }
+            },{
+                "fileName" : "blackbox.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования",
+                "filters": {
+                    "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"],
+                    "sourceType": "BLACKBOX"
+                    }
+            }],
+            "data": [{
+                "fileName" : "ai_report.json",
+                "locale" : "EN",
+                "format" : "JSON"
+            }]
+            }
+        ST_POLICY_JSON: | # Security policy for AI
+            {
+                "CountToActualize": 1,
+                "Scopes": [
+                    {
+                        "Rules": [
+                            {
+                                "Field": "VulnerabilityLevel",
+                                "Value": "High",
+                                "IsRegex": false
+                            },
+                            {
+                                "Field": "IsSuspected",
+                                "Value": "false",
+                                "IsRegex": false
+                            },
+                            {
+                                "Field": "ApprovalState",
+                                "Value": "[^2]",
+                                "IsRegex": true
+                            }
+                        ]
+                    }
+                ]
+            }
+        ST_CODEQUALITY_SETTINGS: | # Security Gates settings for GitLab bot to block merge requests
+          threats mapping:
+              info: Potential
+              minor: Low
+              major: Medium
+              critical: High
+              blocker: []
+          security gates:
+              info: 0
+              minor: 1
+              major: 4
+              critical: 0
+              blocker: 0
+    script:
+        # creating aiproj file from variable or with default values
+        - if [ ! "${ST_USE_SERVER_SETTINGS}" == "true" ]; then if [ ! x"${ST_PROJECT_SETTINGS}" = x ]; then echo ${ST_PROJECT_SETTINGS} > "${ST_PROJECT_NAME}.aiproj"; else set-settings --projectname "${ST_PROJECT_NAME}" --language ${ST_PROJECT_LANGUAGE}; fi; fi;
+        # adding reports and policy parameters to the plugin
+        - if [ ! x"${ST_REPORT_JSON}" = x ]; then echo ${ST_REPORT_JSON} > ai-reports.json && REPORT="--report-json=ai-reports.json"; fi;
+        - if [ ! x"${ST_POLICY_JSON}" = x ]; then echo ${ST_POLICY_JSON} > ai-policy.json && POLICY="--policy-json=ai-policy.json"; fi;
+        # check if the server is available
+        - ptai-plugin check-server
+        # run the scan in ui-ast or in json-ast mode
+        - if [ "${ST_USE_SERVER_SETTINGS}" == "true" ]; then ptai-plugin ui-ast --project="${ST_PROJECT_NAME}" --input=./ --output=.ai_report ${REPORT} ${ST_CUSTOM_PLUGIN_PARAMS}; else ptai-plugin json-ast --settings-json="${ST_PROJECT_NAME}.aiproj" --input=./ --output=.ai_report ${REPORT} ${POLICY} ${ST_CUSTOM_PLUGIN_PARAMS}; fi;
+        # run Security Gates checks to block merge requests
+        - if [ ! x"${ST_CODEQUALITY_SETTINGS}" = x ]; then codequality -i .ai_report -o codequality.json -t ${AI_GITLAB_BOT_TOKEN} -b True; fi;
+    artifacts:
+        expire_in: 31 day
+        paths:
+        - .ai_report/
+    allow_failure: false
+
+# Anchor for blackbox scan
+.ai-blackbox-scan:
+    image: ${REGISTRY_ADDRESS}/tools/ai-plugin:latest # url of docker registry with AI plugin container
+    tags:
+      - docker
+      - linux
+      - build-low # change to your tag
+    variables:
+        BB_PROJECT_NAME: ${AI_BB_PROJECT_NAME} 
+        BB_PROJECT_SETTINGS: ${AI_BB_PROJECT_SETTINGS}
+        BB_CUSTOM_PLUGIN_PARAMS: ${AI_BB_CUSTOM_PLUGIN_PARAMS}
+        BB_REPORT_JSON: | # Reports to be generated after scanning is finished
+            {
+            "report" : [ 
+            {
+                "fileName" : "ai_full_report.html",
+                "locale" : "RU",
+                "format" : "HTML",
+                "template" : "Отчет по результатам сканирования"
+            }
+            ]
+            }
+        BB_POLICY_JSON: | # Security policy for AI
+            [
+                {
+                    "CountToActualize": 1,
+                    "Scopes": [
+                        {
+                            "Rules": [
+                                {
+                                    "Field": "VulnerabilityLevel",
+                                    "Value": "Medium",
+                                    "IsRegex": false
+                                },
+                                {
+                                    "Field": "IsSuspected",
+                                    "Value": "false",
+                                    "IsRegex": false
+                                },
+                                {
+                                    "Field": "ApprovalState",
+                                    "Value": "[^2]",
+                                    "IsRegex": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+    script:
+        # converting settings to JSON files for plugin
+        - if [ ! x"${BB_PROJECT_SETTINGS}" = x ]; then echo ${BB_PROJECT_SETTINGS} > ai-settings.aiproj; fi;
+        - if [ ! x"${BB_REPORT_JSON}" = x ]; then echo ${BB_REPORT_JSON} > ai-reports.json && REPORT="--report-json=ai-reports.json"; fi;
+        - if [ ! x"${BB_POLICY_JSON}" = x ]; then echo ${BB_POLICY_JSON} > ai-policy.json && POLICY="--policy-json=ai-policy.json"; fi;
+        # workaround to avoid sources uploading
+        - mkdir empty && touch empty/1.empty
+        # check if the server is available
+        - ptai-plugin check-server
+        # run the scan in ui-ast or in json-ast mode
+        - if [ ! x"${BB_PROJECT_NAME}" = x ]; then ptai-plugin ui-ast --project="${BB_PROJECT_NAME}" --input=./empty --output=.ai_report ${REPORT} ${BB_CUSTOM_PLUGIN_PARAMS}; else ptai-plugin json-ast --settings-json=ai-settings.aiproj --input=./empty --output=.ai_report ${REPORT} ${POLICY} ${BB_CUSTOM_PLUGIN_PARAMS}; fi;
+    artifacts:
+        expire_in: 31 day
+        paths:
+            - .ai_report/
+    allow_failure: true

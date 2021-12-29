@@ -1,0 +1,14 @@
+stages:
+  - build
+ 
+docker build:
+  stage: build
+  tags:
+    - linux
+    - docker
+  image: docker
+  script:
+    - docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}" ${REGISTRY_ADDRESS}
+    - docker build --build-arg AI_URI="https://${AI_URN}" --build-arg PLUGIN_TOKEN="${PLUGIN_TOKEN}" -t ${REGISTRY_ADDRESS}/tools/ai-plugin:latest --no-cache $CI_PROJECT_DIR/Docker
+    - docker push ${REGISTRY_ADDRESS}/tools/ai-plugin:latest
+  when: manual
