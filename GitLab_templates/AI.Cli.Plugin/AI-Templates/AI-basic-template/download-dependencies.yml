@@ -1,0 +1,42 @@
+# example: download dependencies with package manager (can be used with Maven)
+Maven dependencies:
+    stage: download dependencies
+    image: maven:3-jdk-8
+    tags:
+      - docker
+      - linux
+      - build-low # change to your tag
+    script: 
+      - mvn dependency:copy-dependencies -DoutputDirectory="libs"
+    artifacts:
+      expire_in: 1 day
+      paths:
+        - libs/
+    rules:
+      # only when you use this variable
+      - if: '$DEPS_MANAGER == "Maven"'
+        when: always
+      - when: never
+
+# example: copy dependencies from build job (can be used with gradle in Spring applications)
+Gradle Spring dependencies:
+    stage: download dependencies
+    image: alpine
+    tags:
+      - docker
+      - linux
+      - build-low # change to your tag
+    needs:
+      - pipeline: $PARENT_CI_PIPELINE_ID
+        job: build and test
+    script: 
+      - mkdir libs && mv target/*/WEB-INF/lib/* libs # copy artifacts from build job
+    artifacts:
+      expire_in: 1 day
+      paths:
+        - libs/
+    rules:
+      # only when you use this variable
+      - if: '$DEPS_MANAGER == "Gradle_spring"'
+        when: always
+      - when: never

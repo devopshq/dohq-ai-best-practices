@@ -1,0 +1,88 @@
+stages:
+  - Build
+  - AI Downstream scan
+  - Deploy
+  - AI Blackbox scan
+
+# --- Workflow ------------------------------------------------------
+
+# The workflow field allows you to disable the duplicate pipeline launch if Merge Request exists.
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - when: always
+
+# --- AI in downstream pipeline ----------------------------------------------
+
+# AI Static Analysis in parallel pipeline (AI-Run-in-parallel.yml file)
+variables:
+  AI_PROJECT_NAME: "Java App 01" # AI project name or GitLab variable like ${CI_PROJECT_PATH_SLUG}
+  AI_PROJECT_LANGUAGE: "Java" # To use default AI project settings, please specify main programming language of your project, one of: "Kotlin", "Java", "Swift", "Csharp", "Go", "ObjectiveC", "Vb", "JavaScript", "Sql", "CPlusPlus", "Php", "Python"
+  #AI_USE_SERVER_SETTINGS: "true" # Get AI project settings from server
+  #AI_PROJECT_SETTINGS: | # Set AI project settings manually
+  # {
+  #   "ProjectName": "Java App 01",
+  #   "ProgrammingLanguage": "Java",
+  #   "ScanAppType": "Java, PMtaint, Configuration",
+  #   "IsDownloadDependencies": false,
+  #   "IsUsePublicAnalysisMethod": false,
+  #   "IsUseEntryAnalysisPoint": true
+  # }
+  AI_DEPENDENCY_PROVIDER: "Maven" # Dependency download method (from AI-basic-template/download-dependencies.yml)  
+  AI_CUSTOM_PLUGIN_PARAMS: "--excludes=*.aiproj,ptai-cli-plugin.* --use-default-excludes" # add special parameters for the plugin
+
+
+# --- AI scan templates ------------------------------------------------
+include:
+  - project: 'ptai-demo/pt-ai-demo-templates'
+    file: 
+      - '/AI-basic-template/AI-Run-in-parallel.yml'
+      - '/AI-basic-template/AI-Run-in-sequence.yml'
+
+# --- Your stages --------------------------------------------------
+build and test:
+  stage: Build
+  image: maven:3-jdk-8
+  tags:
+    - docker
+    - linux
+    - build-low
+  script:
+    - mvn install
+  when: always
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - target/app01.war
+
+Deploy:
+  stage: Deploy
+  image: curlimages/curl
+  tags:
+    - docker
+    - linux
+    - build-low
+  script: 
+    - curl -T target/app01.war ftp://${FTP_ADDRESS}/ --user "${FTP_CREDENTIALS}"
+  when: on_success
+
+# --- AI in parent pipeline --------------------------------------------------
+
+# AI Blackbox Analysis in parent pipeline (AI-Run-in-sequence.yml file)
+AI Blackbox:
+  stage: AI Blackbox scan
+  extends: .ai-blackbox-scan
+  variables:
+    #AI_BB_PROJECT_NAME: "Java App 02" # Get AI project settings from server by project name
+    AI_BB_PROJECT_SETTINGS: | # Set AI project settings manually
+        {
+            "ProjectName": "Java App BlackBox",
+            "ProgrammingLanguage": "Java",
+            "ScanAppType": "BlackBox",
+            "Site": "http://${FTP_ADDRESS}/app01/",
+            "Level": "Normal"
+        }
+    #AI_BB_CUSTOM_PLUGIN_PARAMS: "--fail-if-failed" # add special parameters for the plugin

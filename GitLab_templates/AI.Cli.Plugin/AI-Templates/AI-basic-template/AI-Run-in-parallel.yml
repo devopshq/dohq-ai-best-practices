@@ -1,0 +1,186 @@
+# This template is used for parallel scanning with PT Application Inspector
+
+stages:
+  - AI Downstream scan
+
+# --- Pipeline Aliases ---------------------------------------
+
+# Common variables to run AI Scan
+.common-variables: &common-variables
+  variables:
+    DOCKER_IMAGE: ${REGISTRY_ADDRESS}/tools/ai-plugin:latest # URN of docker registry with AI plugin container
+    PARENT_CI_PIPELINE_ID: ${CI_PIPELINE_ID}
+    PROJECT_NAME: ${AI_PROJECT_NAME}
+    PROJECT_LANGUAGE: ${AI_PROJECT_LANGUAGE}
+    CODEQUALITY_SETTINGS: ${AI_CODEQUALITY_SETTINGS}
+    USE_SERVER_SETTINGS: ${AI_USE_SERVER_SETTINGS}
+    PROJECT_SETTINGS: ${AI_PROJECT_SETTINGS}
+    CUSTOM_PLUGIN_PARAMS: ${AI_CUSTOM_PLUGIN_PARAMS}
+    DEPS_MANAGER: ${AI_DEPENDENCY_PROVIDER}
+    REPORT_JSON: | # Reports to be generated after scanning is finished
+        {
+        "report" : [ 
+        {
+            "fileName" : "ai_full_report.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования"
+        },{
+            "fileName" : "tier1.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования",
+            "filters": {
+                "issueLevels": ["MEDIUM", "HIGH"],
+                "scanMode": "FROMENTRYPOINT",
+                "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"]
+                }
+        },{
+            "fileName" : "tier2.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования",
+            "filters": {
+                "issueLevels": ["MEDIUM", "HIGH"],
+                "scanMode": "FROMPUBLICPROTECTED",
+                "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"]
+                }
+        },{
+            "fileName" : "tier3.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования",
+            "filters": {
+                "issueLevels": ["LOW", "POTENTIAL"],
+                "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"],
+                "sourceType": "STATIC"
+                }
+        },{
+            "fileName" : "new.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования",
+            "filters": {
+                "actualStatus": "ISNEW",
+                "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"]
+                }
+        },{
+            "fileName" : "vulnerable components.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования",
+            "filters": {
+                "issueLevels": ["MEDIUM", "HIGH"],
+                "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"],
+                "scanMode": "FROMOTHER",
+                "sourceType": "STATIC"
+                }
+        },{
+            "fileName" : "blackbox.html",
+            "locale" : "RU",
+            "format" : "HTML",
+            "template" : "Отчет по результатам сканирования",
+            "filters": {
+                "confirmationStatuses": ["UNDEFINED", "NONE", "APPROVED", "AUTOAPPROVED"],
+                "sourceType": "BLACKBOX"
+                }
+        }],
+        "data": [{
+            "fileName" : "ai_report.json",
+            "locale" : "EN",
+            "format" : "JSON"
+        }]
+        }
+    POLICY_JSON: | # Security policy for AI
+        [
+            {
+                "CountToActualize": 1,
+                "Scopes": [
+                    {
+                        "Rules": [
+                            {
+                                "Field": "Level",
+                                "Value": "High",
+                                "IsRegex": false
+                            },
+                            {
+                                "Field": "Exploit",
+                                "Value": ".",
+                                "IsRegex": true
+                            },
+                            {
+                                "Field": "IsSuspected",
+                                "Value": "false",
+                                "IsRegex": false
+                            },
+                            {
+                                "Field": "ApprovalState",
+                                "Value": "[^2]",
+                                "IsRegex": true
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    CODEQUALITY_SETTINGS: | # Security Gates settings for GitLab bot to block merge requests
+      threats mapping:
+          info: Potential
+          minor: Low
+          major: Medium
+          critical: High
+          blocker: []
+      security gates:
+          info: 0
+          minor: 1
+          major: 4
+          critical: 0
+          blocker: 0
+
+# Anchors for selecting the launch mode
+.information-mode: &information-mode
+  <<: *common-variables
+  stage: AI Downstream scan
+  trigger:
+    include:
+      - project: 'ptai-demo/pt-ai-demo-templates'
+        file: '/AI-basic-template/AI-Run-in-parallel/AI-Information-Mode.yml'
+
+.lock-mode: &lock-mode
+  <<: *common-variables
+  stage: AI Downstream scan
+  trigger:
+    include:
+      - project: 'ptai-demo/pt-ai-demo-templates'
+        file: '/AI-basic-template/AI-Run-in-parallel/AI-Lock-Mode.yml'
+
+.strictest-mode: &strictest-mode
+  <<: *common-variables
+  stage: AI Downstream scan
+  trigger:
+    include:
+      - project: 'ptai-demo/pt-ai-demo-templates'
+        file: '/AI-basic-template/AI-Run-in-parallel/AI-Strictest-Mode.yml'
+
+# --- Start pipelines -------------------------------------------
+
+# Starting a child pipeline depending on the branch
+AI Information mode scan:
+  <<: *information-mode
+  except:
+    - release
+    - develop
+    - master
+  only:
+    - branches
+    
+AI Lock mode scan:
+  <<: *lock-mode
+  only:
+    - master
+    
+AI Strictest mode scan:
+  <<: *strictest-mode
+  only:
+    - develop
+    
