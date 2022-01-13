@@ -28,7 +28,7 @@ Gradle Spring dependencies:
       - build-low # change to your tag
     needs:
       - pipeline: $PARENT_CI_PIPELINE_ID
-        job: build and test
+        job: build and test # change to the name of your build job
     script: 
       - mkdir libs && mv target/*/WEB-INF/lib/* libs # copy artifacts from build job
     artifacts:

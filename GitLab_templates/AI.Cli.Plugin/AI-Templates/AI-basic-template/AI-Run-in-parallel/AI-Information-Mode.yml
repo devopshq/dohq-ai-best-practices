@@ -47,18 +47,9 @@ stages:
 
 # --- Additional scripts aliases ------------------------------------
 
-# Push "Running" status to parent pipeline (for easier perception in MergeRequest)
-.push-AI-report-status-run-to-upstream: &push-AI-report-status-run-to-upstream >
-  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=running&name=AI%20Downstream%20Scan%20Report&description=Waiting%20for%20scan%20report%20from%20child%20pipeline&pipeline_id=$PARENT_CI_PIPELINE_ID"
-  --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
-
 # Push "Success" status with report hyperlink to parent pipeline
 .push-AI-report-status-success-to-upstream: &push-AI-report-status-success-to-upstream >
   curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=success&name=AI%20Downstream%20Scan%20Report&description=Click%20to%20watch%20scanning%20report&target_url=$CI_JOB_URL/artifacts/browse/.ai_report/&pipeline_id=$PARENT_CI_PIPELINE_ID" --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
-
-# Push "Failed" status with report hyperlink to parent pipeline
-.push-AI-report-status-failed-to-upstream: &push-AI-report-status-failed-to-upstream >
-  curl --location --request POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/statuses/$CI_COMMIT_SHA?state=failed&name=AI%20Downstream%20Scan%20Report&description=Code%20scan%20failed&pipeline_id=$PARENT_CI_PIPELINE_ID" --header "PRIVATE-TOKEN: ${AI_GITLAB_BOT_TOKEN}"
 
 # Push "Security Gates: Passed / Failed" status to parent pipeline
 .push-Security-Gates-status-to-upstream: &push-Security-Gates-status-to-upstream >
@@ -80,8 +71,6 @@ AI-scanning:
   <<: *common-build
   <<: *common-artifacts
   stage: AI Scan
-  before_script:
-    - *push-AI-report-status-run-to-upstream
   script:
     # creating aiproj file from variable or with default values
     - if [ ! "${USE_SERVER_SETTINGS}" == "true" ]; then if [ ! x"${PROJECT_SETTINGS}" = x ]; then echo ${PROJECT_SETTINGS} > "${PROJECT_NAME}.aiproj"; else set-settings --projectname "${PROJECT_NAME}" --language ${PROJECT_LANGUAGE}; fi; fi;
@@ -93,14 +82,6 @@ AI-scanning:
     # run the scan in ui-ast or in json-ast mode
     - if [ "${USE_SERVER_SETTINGS}" == "true" ]; then ptai-plugin ui-ast --project="${PROJECT_NAME}" --input=./ --output=.ai_report ${REPORT} ${CUSTOM_PLUGIN_PARAMS}; else ptai-plugin json-ast --settings-json="${PROJECT_NAME}.aiproj" --input=./ --output=.ai_report ${REPORT} ${POLICY} ${CUSTOM_PLUGIN_PARAMS}; fi;
     - *push-AI-report-status-success-to-upstream
-
-# Push failed status if scanning failed:
-Send failed report status:
-  <<: *common-build
-  <<: *on-failure
-  stage: Update report status
-  script:
-    - *push-AI-report-status-failed-to-upstream
 
 # --- Security Gates Stage ------------------------------------------
 
