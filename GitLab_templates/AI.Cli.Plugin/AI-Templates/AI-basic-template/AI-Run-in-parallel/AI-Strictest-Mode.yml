@@ -87,6 +87,7 @@ stages:
 
 
 # --- AI Scan Stage ------------------------------------------------
+# download project dependencies
 include:
     - project: 'ptai-demo/pt-ai-demo-templates'
       file: '/AI-basic-template/download-dependencies.yml'
@@ -132,7 +133,7 @@ Check Security Gate:
     - *push-Security-Gates-status-to-upstream
   rules:
     - if: $CODEQUALITY_SETTINGS != ""
-    - when: on_success 
+    - when: on_success
   needs:
     - job: AI-scanning
       artifacts: true
@@ -164,7 +165,7 @@ Approve build:
     - Check Security Gate
 
 # Starts a manual job in the parent pipeline
-Run upload:
+Run manual job:
   <<: *common-build
   stage: Build verification
   script:

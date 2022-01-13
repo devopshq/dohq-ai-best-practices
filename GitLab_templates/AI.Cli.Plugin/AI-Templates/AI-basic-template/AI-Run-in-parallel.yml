@@ -170,6 +170,7 @@ AI Information mode scan:
     - release
     - develop
     - master
+    - main    
   only:
     - branches
     
@@ -177,6 +178,7 @@ AI Lock mode scan:
   <<: *lock-mode
   only:
     - master
+    - main
     
 AI Strictest mode scan:
   <<: *strictest-mode

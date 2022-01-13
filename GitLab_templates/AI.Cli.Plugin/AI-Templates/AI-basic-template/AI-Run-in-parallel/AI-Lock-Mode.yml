@@ -117,6 +117,7 @@ Check Security Gate:
     - *push-Security-Gates-status-to-upstream
   rules:
     - if: $CODEQUALITY_SETTINGS != ""
+    - when: on_success
   needs:
     - job: AI-scanning
       artifacts: true
@@ -139,7 +140,7 @@ Check Security Gate:
 #  stage: Notifications
 #  script:
 #    - exit 0
-#
+
 # Fake job for demonstration
 #Notify by email and chats (Failure):
 #  <<: *common-build

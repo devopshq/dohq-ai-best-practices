@@ -86,3 +86,12 @@ AI Blackbox:
             "Level": "Normal"
         }
     #AI_BB_CUSTOM_PLUGIN_PARAMS: "--fail-if-failed" # add special parameters for the plugin
+
+# Promote artifact to use in production environment
+# This step is used to demonstrate the work of AI-Strictest-Mode.yml template
+Promote:
+  stage: Promote
+  image: alpine
+  script:
+    - exit 0
+  when: manual
