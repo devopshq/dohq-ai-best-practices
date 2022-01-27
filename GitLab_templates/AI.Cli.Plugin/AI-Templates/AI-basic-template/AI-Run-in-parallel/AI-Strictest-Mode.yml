@@ -140,9 +140,10 @@ Check Security Gate:
   artifacts:
     expire_in: 31 day
     paths:
-      - .ai_report/
+      - codequality.json
     reports:
       dotenv: .env
+      codequality: codequality.json
 
 # Fake job for demonstration
 #Send failed status to monitoring:

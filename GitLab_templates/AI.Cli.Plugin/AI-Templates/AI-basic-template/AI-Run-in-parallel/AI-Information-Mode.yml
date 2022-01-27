@@ -88,7 +88,6 @@ AI-scanning:
 # This job processes the results of the AI-scanning and makes a verdict on them. See the documentation for more info
 Check Security Gate:
   <<: *common-build
-  <<: *common-artifacts
   stage: Security Gates
   before_script:
     - echo "${CODEQUALITY_SETTINGS}" > ./codequality.settings.yml
@@ -101,6 +100,13 @@ Check Security Gate:
   needs:
     - job: AI-scanning
       artifacts: true
+  artifacts:
+    expire_in: 31 day
+    paths:
+      - codequality.json
+    reports:
+      dotenv: .env
+      codequality: codequality.json
 
 # Fake job for demonstration
 #Send failed status to monitoring:

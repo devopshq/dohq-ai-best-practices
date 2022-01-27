@@ -90,7 +90,7 @@ stages:
             "format" : "JSON"
         }]
         }
-    POLICY_JSON: | # Security policy for AI
+    POLICY_JSON: | # Security policy used in Application Inspector
         [
             {
                 "CountToActualize": 1,
@@ -122,7 +122,7 @@ stages:
                 ]
             }
         ]
-    CODEQUALITY_SETTINGS: | # Security Gates settings for GitLab bot to block merge requests
+    CODEQUALITY_SETTINGS: | # GitLab Code Quality settings, also used to block merge requests with bot
       threats mapping:
           info: Potential
           minor: Low
@@ -131,9 +131,9 @@ stages:
           blocker: []
       security gates:
           info: 0
-          minor: 1
-          major: 4
-          critical: 0
+          minor: 0
+          major: 5
+          critical: 1
           blocker: 0
 
 # Anchors for selecting the launch mode
