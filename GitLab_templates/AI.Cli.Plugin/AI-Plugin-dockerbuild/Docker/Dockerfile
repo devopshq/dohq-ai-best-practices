@@ -1,6 +1,6 @@
 # (c) DevOpsHQ, 2021
 
-FROM gradle:7-jdk8
+FROM gradle:7.1.1-jdk8
 
 # You must define some specific variables:
 # All Access tokens are here: https://<your-aie-server>/ui/admin/settings
@@ -22,7 +22,7 @@ RUN set -ex && apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir /tmp/py3.7_build && \
     cd /tmp/py3.7_build && \
     apt-get update && \
-    apt-get install --no-install-recommends -y libssl-dev libsqlite3-dev zlib1g-dev libffi-dev  && \
+    apt-get install --no-install-recommends -y libssl-dev libsqlite3-dev zlib1g-dev libffi-dev libpq-dev && \
     apt-get clean && \
     wget -c "https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz" && \
     tar xf "Python-3.7.7.tgz" && \
